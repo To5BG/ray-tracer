@@ -76,22 +76,28 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
         // iterate over all lights
         for (auto& light : scene.lights) {
 
-            // if the light is a point light
             if (std::holds_alternative<PointLight>(light)) {
-                PointLight p = std::get<PointLight>(light);
-                shading += computeShading(p.position, p.color, features, ray, hitInfo);
-            }
-            if (std::holds_alternative<SegmentLight>(light)) {
-                SegmentLight s = std::get<SegmentLight>(light);
-                shading += computeShading(s.endpoint1, s.color1, features, ray, hitInfo);
-                shading += computeShading(s.endpoint0, s.color0, features, ray, hitInfo);
-            }
-            if (std::holds_alternative<ParallelogramLight>(light)) {
-                ParallelogramLight p = std::get<ParallelogramLight>(light);
-                shading += computeShading(p.v0, p.color0, features, ray, hitInfo);
-                shading += computeShading(p.v0 + p.edge01, p.color1, features, ray, hitInfo);
-                shading += computeShading(p.v0 + p.edge02, p.color2, features, ray, hitInfo);
-                shading += computeShading(p.v0 + p.edge01 + p.edge02, p.color3, features, ray, hitInfo);
+
+                // pointLight
+
+                PointLight pointLight = std::get<PointLight>(light);
+                shading += computeShading(pointLight.position, pointLight.color, features, ray, hitInfo);
+            } else if (std::holds_alternative<SegmentLight>(light)) {
+
+                // segmentLight
+
+                const SegmentLight segmentLight = std::get<SegmentLight>(light);
+                shading += computeShading(segmentLight.endpoint1, segmentLight.color1, features, ray, hitInfo);
+                shading += computeShading(segmentLight.endpoint0, segmentLight.color0, features, ray, hitInfo);
+            } else if(std::holds_alternative<ParallelogramLight>(light)) {
+
+                // parallelogramLight
+
+                const ParallelogramLight parallelogramLight = std::get<ParallelogramLight>(light);
+                shading += computeShading(parallelogramLight.v0, parallelogramLight.color0, features, ray, hitInfo);
+                shading += computeShading(parallelogramLight.v0 + parallelogramLight.edge01, parallelogramLight.color1, features, ray, hitInfo);
+                shading += computeShading(parallelogramLight.v0 + parallelogramLight.edge02, parallelogramLight.color2, features, ray, hitInfo);
+                shading += computeShading(parallelogramLight.v0 + parallelogramLight.edge01 + parallelogramLight.edge02, parallelogramLight.color3, features, ray, hitInfo);
             }
         }
 

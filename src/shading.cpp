@@ -23,13 +23,9 @@ const glm::vec3 computeShading(const glm::vec3& lightPosition, const glm::vec3& 
     // specular
     float specular = 0.0;
 
-    Ray lightRay {};
-
-    lightRay.direction = L;
-
     // if visible
     if (lambertian > 0) {
-        glm::vec3 R = computeReflectionRay(lightRay, hitInfo).direction;
+        glm::vec3 R = glm::reflect(L, N);
         glm::vec3 V = glm::normalize(-ray.origin + VertexPos);
         float specAngle = glm::dot(R, V) > 0 ? glm::dot(R, V) : 0;
         specular = pow(specAngle, hitInfo.material.shininess);
@@ -47,8 +43,6 @@ const Ray computeReflectionRay (Ray ray, HitInfo hitInfo)
 {
     // Do NOT use glm::reflect!! write your own code.
     Ray reflectionRay {};
-
-    reflectionRay.direction = ray.direction - 2.0f * hitInfo.normal * glm::dot(hitInfo.normal, ray.direction);
-
+    // TODO: implement the reflection ray computation.
     return reflectionRay;
 }
