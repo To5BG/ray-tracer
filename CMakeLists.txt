@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.11 FATAL_ERROR)
 project(ComputerGraphics C CXX)
 
-option(USE_PREBUILT_INTERSECT "Enable using prebuilt intersection library" ON)
+option(USE_PREBUILT_INTERSECT "Enable using prebuilt intersection library" OFF)
 
 if (EXISTS "${CMAKE_CURRENT_LIST_DIR}/framework")
 	# Create framework library and include CMake scripts (compiler warnings, sanitizers and static analyzers).
@@ -45,7 +45,19 @@ target_compile_features(FinalProjectLib PUBLIC cxx_std_20)
 enable_sanitizers(FinalProjectLib)
 set_project_warnings(FinalProjectLib)
 
-target_sources(FinalProjectLib PRIVATE "src/intersect.cpp")
+#if (USE_PREBUILT_INTERSECT)
+#	add_library(Intersect2 STATIC IMPORTED)
+#	if (WIN32)
+#		set_target_properties(Intersect2 PROPERTIES IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/prebuilt/Intersect_x64.lib")
+#	elseif (APPLE)
+#		set_target_properties(Intersect2 PROPERTIES IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/prebuilt/libIntersect_mac_arm64.a")
+#	else()
+#		set_target_properties(Intersect2 PROPERTIES IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/prebuilt/libIntersect_linux_x64.a")
+#	endif()
+#	target_link_libraries(FinalProjectLib PUBLIC Intersect2)
+#else()
+	target_sources(FinalProjectLib PRIVATE "src/intersect.cpp")
+#endif()
 
 target_compile_definitions(FinalProjectLib PUBLIC
 	"-DDATA_DIR=\"${CMAKE_CURRENT_LIST_DIR}/data/\"")
