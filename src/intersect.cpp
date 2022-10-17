@@ -111,7 +111,7 @@ bool intersectRayWithShape(const AxisAlignedBox& box, Ray& ray)
     float t_in = glm::max(glm::max(ts[0], ts[2]), ts[4]);
     float t_out = glm::min(glm::min(ts[1], ts[3]), ts[5]);
     // Check if ray misses AABB, if ray is pointing opposite to AABB, or if origin lies on AABB
-    if (t_in > t_out || t_out <= 0 || isZero(t_in, 0.0f))
+    if (t_in > t_out || t_out <= 0 || isZero(t_in))
         return false;
     // Check if origin inside of AABB
     ray.t = t_in < 0 ? t_out : t_in;
