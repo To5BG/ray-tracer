@@ -61,6 +61,7 @@ bool intersectRayWithTriangle(const glm::vec3& v0, const glm::vec3& v1, const gl
     // Update t if it lies on triangle and is smaller than curr ray.t
     bool pit = pointInTriangle(v0, v1, v2, p.normal, ray.origin + ray.direction * ray.t) && ray.t < oldT;
     ray.t = pit ? ray.t : oldT;
+    if(pit) hitInfo.normal = -p.normal;
     return pit;
 }
 
