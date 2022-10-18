@@ -31,6 +31,27 @@ void sampleParallelogramLight(const ParallelogramLight& parallelogramLight, glm:
 float testVisibilityLightSample(const glm::vec3& samplePos, const glm::vec3& debugColor, const BvhInterface& bvh, const Features& features, Ray ray, HitInfo hitInfo)
 {
     // TODO: implement this function.
+    if (features.enableHardShadow) {
+
+        // the intersection point to calculate the visibility for
+        glm::vec3 intersectPos = ray.origin + ray.t * ray.direction;
+
+        // calculate the light ray 
+        Ray light = Ray {};
+        light.origin = intersectPos;
+        light.direction = samplePos - intersectPos;
+        light.t = 1.0f;
+        
+        // if there is an object between the light and the hitpos
+        if (bvh.intersect(light, hitInfo, features)) {
+            drawRay(light, { 1.0f, 0.0f, 0.0f });
+            return 0.0f;
+        }
+
+        // draw a ray in the lightcolor if no intersection is found
+        drawRay(light, debugColor);
+
+    }
     return 1.0;
 }
 
@@ -69,6 +90,20 @@ float testVisibilityLightSample(const glm::vec3& samplePos, const glm::vec3& deb
 // loadScene function in scene.cpp). Custom lights will not be visible in rasterization view.
 glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, const Features& features, Ray ray, HitInfo hitInfo)
 {
+
+    // for hard shadow this will indiciate if we should light the hitpoint or not
+    float lighted = 0.0f;
+    if (features.enableHardShadow) {
+        for (const auto& light : scene.lights) {
+            if (std::holds_alternative<PointLight>(light)) {
+                const PointLight pointLight = std::get<PointLight>(light);
+
+                // check if the point is lighted
+                lighted = lighted ? 1.0f : testVisibilityLightSample(pointLight.position, pointLight.color, bvh, features, ray, hitInfo);
+            }
+        }
+    }
+
     if (features.enableShading) {
         // If shading is enabled, compute the contribution from all lights.
 
@@ -77,6 +112,6 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
 
     } else {
         // If shading is disabled, return the albedo of the material.
-        return hitInfo.material.kd;
+        return hitInfo.material.kd * lighted;
     }
 }
