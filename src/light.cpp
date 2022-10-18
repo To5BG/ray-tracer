@@ -33,8 +33,8 @@ float testVisibilityLightSample(const glm::vec3& samplePos, const glm::vec3& deb
     // TODO: implement this function.
     if (features.enableHardShadow) {
 
-        // the intersection point to calculate the visibility for
-        glm::vec3 intersectPos = ray.origin + ray.t * ray.direction;
+        // the intersection point to calculate the visibility for, minus a really small offset for floating point issues
+        glm::vec3 intersectPos = (ray.origin - ray.t * ray.direction * 0.00001f) + ray.t * ray.direction;
 
         // calculate the light ray 
         Ray light = Ray {};
