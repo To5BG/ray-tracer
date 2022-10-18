@@ -71,9 +71,37 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
 {
     if (features.enableShading) {
         // If shading is enabled, compute the contribution from all lights.
+        glm::vec3 shading = glm::vec3 { 0.0f };
 
-        // TODO: replace this by your own implementation of shading
-        return hitInfo.material.kd;
+        // iterate over all lights
+        for (auto& light : scene.lights) {
+
+            if (std::holds_alternative<PointLight>(light)) {
+
+                // pointLight
+
+                PointLight pointLight = std::get<PointLight>(light);
+                shading += computeShading(pointLight.position, pointLight.color, features, ray, hitInfo);
+            } else if (std::holds_alternative<SegmentLight>(light)) {
+
+                // segmentLight
+
+                const SegmentLight segmentLight = std::get<SegmentLight>(light);
+                shading += computeShading(segmentLight.endpoint1, segmentLight.color1, features, ray, hitInfo);
+                shading += computeShading(segmentLight.endpoint0, segmentLight.color0, features, ray, hitInfo);
+            } else if(std::holds_alternative<ParallelogramLight>(light)) {
+
+                // parallelogramLight
+
+                const ParallelogramLight parallelogramLight = std::get<ParallelogramLight>(light);
+                shading += computeShading(parallelogramLight.v0, parallelogramLight.color0, features, ray, hitInfo);
+                shading += computeShading(parallelogramLight.v0 + parallelogramLight.edge01, parallelogramLight.color1, features, ray, hitInfo);
+                shading += computeShading(parallelogramLight.v0 + parallelogramLight.edge02, parallelogramLight.color2, features, ray, hitInfo);
+                shading += computeShading(parallelogramLight.v0 + parallelogramLight.edge01 + parallelogramLight.edge02, parallelogramLight.color3, features, ray, hitInfo);
+            }
+        }
+
+        return shading;
 
     } else {
         // If shading is disabled, return the albedo of the material.
