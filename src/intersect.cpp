@@ -43,7 +43,7 @@ bool intersectRayWithPlane(const Plane& plane, Ray& ray)
 Plane trianglePlane(const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2)
 {
     Plane plane;
-    glm::vec3 n = glm::cross(v2 - v0, v1 - v0);
+    glm::vec3 n = glm::cross(v1 - v0, v2 - v0);
     // Choose arbitrary normal if triangle is degenerate
     plane.normal = isZero(glm::length(n)) ? glm::vec3 { 1.0f, 0.0f, 0.0f } : glm::normalize(n);
     plane.D = glm::dot(plane.normal, v0);
@@ -61,7 +61,7 @@ bool intersectRayWithTriangle(const glm::vec3& v0, const glm::vec3& v1, const gl
     // Update t if it lies on triangle and is smaller than curr ray.t
     bool pit = pointInTriangle(v0, v1, v2, p.normal, ray.origin + ray.direction * ray.t) && ray.t < oldT;
     ray.t = pit ? ray.t : oldT;
-    if(pit) hitInfo.normal = -p.normal;
+    if(pit) hitInfo.normal = p.normal;
     return pit;
 }
 
