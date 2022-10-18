@@ -101,7 +101,7 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                 const PointLight pointLight = std::get<PointLight>(light);
 
                 // check if the point is lighted
-                lighted = lighted ? 1.0f : testVisibilityLightSample(pointLight.position, pointLight.color, bvh, features, ray, hitInfo);
+                lighted += testVisibilityLightSample(pointLight.position, pointLight.color, bvh, features, ray, hitInfo);
             }
         }
     }
