@@ -80,6 +80,27 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
                 if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo)) {
                     hitInfo.material = mesh.material;
                     hit = true;
+                    if (features.enableNormalInterp) {
+                        glm::vec3 point = ray.origin + ray.direction * ray.t;
+                        float length = 0.5;
+                        Ray drawnRay = {};
+                        drawnRay.direction = v0.normal;
+                        drawnRay.origin = v0.position;
+                        drawnRay.t = length;
+                        drawRay(drawnRay);
+                        drawnRay.direction = v1.normal;
+                        drawnRay.origin = v1.position;
+                        drawRay(drawnRay);
+                        drawnRay.direction = v2.normal;
+                        drawnRay.origin = v2.position;
+                        drawRay(drawnRay);
+                        glm::vec3 color = glm::vec3{ 0.0, 0.7f, 0.0 };
+                        glm::vec3 barycentric = computeBarycentricCoord(v0.position, v1.position, v2.position, point);
+                        glm::vec3 interpolatedNormal = interpolateNormal(v0.normal, v1.normal, v2.normal, barycentric);
+                        drawnRay.direction = interpolatedNormal;
+                        drawnRay.origin = point;
+                        drawRay(drawnRay,color);
+                    }
                 }
             }
         }
