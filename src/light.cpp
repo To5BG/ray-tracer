@@ -6,15 +6,18 @@ DISABLE_WARNINGS_PUSH()
 #include <glm/geometric.hpp>
 DISABLE_WARNINGS_POP()
 #include <cmath>
-
+#include <iostream>
 
 // samples a segment light source
 // you should fill in the vectors position and color with the sampled position and color
 void sampleSegmentLight(const SegmentLight& segmentLight, glm::vec3& position, glm::vec3& color)
 {
-    position = glm::vec3(0.0);
-    color = glm::vec3(0.0);
-    // TODO: implement this function.
+    //TODO check if distance != 0
+    float distance = glm::distance(segmentLight.endpoint0, segmentLight.endpoint1);
+    float patition1 = glm::distance(segmentLight.endpoint0, position) / distance;
+    float patition0 = 1 - patition1;
+
+    color = patition0 * segmentLight.color0 + patition1 * segmentLight.color1;
 }
 
 // samples a parallelogram light source
@@ -104,6 +107,8 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                 lighted += testVisibilityLightSample(pointLight.position, pointLight.color, bvh, features, ray, hitInfo);
             }
         }
+    } else {
+        lighted = 1.0f;
     }
 
     if (features.enableShading) {
@@ -116,16 +121,31 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
             if (std::holds_alternative<PointLight>(light)) {
 
                 // pointLight
-
                 PointLight pointLight = std::get<PointLight>(light);
-                shading += computeShading(pointLight.position, pointLight.color, features, ray, hitInfo);
+
+                // add shadow
+                lighted = testVisibilityLightSample(pointLight.position, pointLight.color, bvh, features, ray, hitInfo);
+               
+                // shade
+                shading += computeShading(pointLight.position, pointLight.color, features, ray, hitInfo) * lighted;
+
             } else if (std::holds_alternative<SegmentLight>(light)) {
 
                 // segmentLight
 
                 const SegmentLight segmentLight = std::get<SegmentLight>(light);
-                shading += computeShading(segmentLight.endpoint1, segmentLight.color1, features, ray, hitInfo);
-                shading += computeShading(segmentLight.endpoint0, segmentLight.color0, features, ray, hitInfo);
+
+                float samples = 6.0f;
+                for (int i = 0; i < samples; i++) {
+                    glm::vec3 pos = segmentLight.endpoint0 * float(1 - i / samples) + segmentLight.endpoint1 * float(i / samples);
+                    glm::vec3 col;
+
+                    sampleSegmentLight(segmentLight, pos, col);
+
+                    shading += computeShading(pos, col, features, ray, hitInfo) / samples;
+                }
+
+
             } else if(std::holds_alternative<ParallelogramLight>(light)) {
 
                 // parallelogramLight

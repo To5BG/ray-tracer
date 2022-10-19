@@ -69,6 +69,8 @@ int main(int argc, char** argv)
 
         int bvhDebugLevel = 0;
         int bvhDebugLeaf = 0;
+        int amountOfSamples = 10;
+
         bool debugBVHLevel { false };
         bool debugBVHLeaf { false };
         ViewMode viewMode { ViewMode::Rasterization };
@@ -199,6 +201,8 @@ int main(int argc, char** argv)
                 if (debugBVHLeaf)
                     ImGui::SliderInt("BVH Leaf", &bvhDebugLeaf, 1, bvh.numLeaves());
             }
+
+            ImGui::SliderInt("Samples", &amountOfSamples, 0, 100);
 
             ImGui::Spacing();
             ImGui::Separator();
