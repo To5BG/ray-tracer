@@ -69,7 +69,6 @@ int main(int argc, char** argv)
 
         int bvhDebugLevel = 0;
         int bvhDebugLeaf = 0;
-        int amountOfSamples = 10;
 
         bool debugBVHLevel { false };
         bool debugBVHLeaf { false };
@@ -202,7 +201,7 @@ int main(int argc, char** argv)
                     ImGui::SliderInt("BVH Leaf", &bvhDebugLeaf, 1, bvh.numLeaves());
             }
 
-            ImGui::SliderInt("Samples", &amountOfSamples, 0, 100);
+            ImGui::SliderInt("Samples", &samplesPerUnit, 0, 100);
 
             ImGui::Spacing();
             ImGui::Separator();

@@ -8,14 +8,21 @@ DISABLE_WARNINGS_POP()
 #include <cmath>
 #include <iostream>
 
+int samplesPerUnit = 10;
+
 // samples a segment light source
 // you should fill in the vectors position and color with the sampled position and color
 void sampleSegmentLight(const SegmentLight& segmentLight, glm::vec3& position, glm::vec3& color)
 {
     //TODO check if distance != 0
     float distance = glm::distance(segmentLight.endpoint0, segmentLight.endpoint1);
-    float patition1 = glm::distance(segmentLight.endpoint0, position) / distance;
-    float patition0 = 1 - patition1;
+    float patition0 = 0.5f;
+    float patition1 = 0.5f;
+   
+    if (distance != 0) {
+        patition1 = glm::distance(segmentLight.endpoint0, position) / distance;
+        patition0 = 1 - patition1;
+    }
 
     color = patition0 * segmentLight.color0 + patition1 * segmentLight.color1;
 }
@@ -97,19 +104,7 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
 {
 
     // for hard shadow this will indiciate if we should light the hitpoint or not
-    float lighted = 0.0f;
-    if (features.enableHardShadow) {
-        for (const auto& light : scene.lights) {
-            if (std::holds_alternative<PointLight>(light)) {
-                const PointLight pointLight = std::get<PointLight>(light);
-
-                // check if the point is lighted
-                lighted += testVisibilityLightSample(pointLight.position, pointLight.color, bvh, features, ray, hitInfo);
-            }
-        }
-    } else {
-        lighted = 1.0f;
-    }
+    float lighted = features.enableHardShadow ? 0.0f : 1.0f;
 
     if (features.enableShading) {
         // If shading is enabled, compute the contribution from all lights.
@@ -132,16 +127,19 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
             } else if (std::holds_alternative<SegmentLight>(light)) {
 
                 // segmentLight
-
                 const SegmentLight segmentLight = std::get<SegmentLight>(light);
 
-                float samples = 6.0f;
-                for (int i = 0; i < samples; i++) {
+                // the amount of samples per distance, multiplied by the distance to get the total amount of needed samples
+                float samples = (float)std::max((float)samplesPerUnit * glm::distance(segmentLight.endpoint0, segmentLight.endpoint1),2.0f);
+
+                // create the samples
+                for (int i = 0; i <= samples; i++) {
                     glm::vec3 pos = segmentLight.endpoint0 * float(1 - i / samples) + segmentLight.endpoint1 * float(i / samples);
                     glm::vec3 col;
 
                     sampleSegmentLight(segmentLight, pos, col);
 
+                    // shade each sample, and divide by the total amount of samples 
                     shading += computeShading(pos, col, features, ray, hitInfo) / samples;
                 }
 
