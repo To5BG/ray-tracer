@@ -30,7 +30,30 @@ void sampleParallelogramLight(const ParallelogramLight& parallelogramLight, glm:
 // returns 1.0 if sample is visible, 0.0 otherwise
 float testVisibilityLightSample(const glm::vec3& samplePos, const glm::vec3& debugColor, const BvhInterface& bvh, const Features& features, Ray ray, HitInfo hitInfo)
 {
-    // TODO: implement this function.
+    // to prevent the ray from interacting with the object at the origin
+    float epsilon = 0.00001f;
+
+    if (features.enableHardShadow) {
+
+        // the intersection point to calculate the visibility for, minus a really small offset for floating point issues
+        glm::vec3 intersectPos = ray.origin + (1-epsilon) * ray.t * ray.direction;
+
+        // calculate the light ray 
+        Ray light = Ray {};
+        light.origin = intersectPos;
+        light.direction = samplePos - intersectPos;
+        light.t = 1.0f;
+        
+        // if there is an object between the light and the hitpos
+        if (bvh.intersect(light, hitInfo, features)) {
+            drawRay(light, { 1.0f, 0.0f, 0.0f });
+            return 0.0f;
+        }
+
+        // draw a ray in the lightcolor if no intersection is found
+        drawRay(light, debugColor);
+
+    }
     return 1.0;
 }
 
@@ -69,14 +92,56 @@ float testVisibilityLightSample(const glm::vec3& samplePos, const glm::vec3& deb
 // loadScene function in scene.cpp). Custom lights will not be visible in rasterization view.
 glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, const Features& features, Ray ray, HitInfo hitInfo)
 {
+
+    // for hard shadow this will indiciate if we should light the hitpoint or not
+    float lighted = 0.0f;
+    if (features.enableHardShadow) {
+        for (const auto& light : scene.lights) {
+            if (std::holds_alternative<PointLight>(light)) {
+                const PointLight pointLight = std::get<PointLight>(light);
+
+                // check if the point is lighted
+                lighted += testVisibilityLightSample(pointLight.position, pointLight.color, bvh, features, ray, hitInfo);
+            }
+        }
+    }
+
     if (features.enableShading) {
         // If shading is enabled, compute the contribution from all lights.
+        glm::vec3 shading = glm::vec3 { 0.0f };
 
-        // TODO: replace this by your own implementation of shading
-        return hitInfo.material.kd;
+        // iterate over all lights
+        for (auto& light : scene.lights) {
+
+            if (std::holds_alternative<PointLight>(light)) {
+
+                // pointLight
+
+                PointLight pointLight = std::get<PointLight>(light);
+                shading += computeShading(pointLight.position, pointLight.color, features, ray, hitInfo);
+            } else if (std::holds_alternative<SegmentLight>(light)) {
+
+                // segmentLight
+
+                const SegmentLight segmentLight = std::get<SegmentLight>(light);
+                shading += computeShading(segmentLight.endpoint1, segmentLight.color1, features, ray, hitInfo);
+                shading += computeShading(segmentLight.endpoint0, segmentLight.color0, features, ray, hitInfo);
+            } else if(std::holds_alternative<ParallelogramLight>(light)) {
+
+                // parallelogramLight
+
+                const ParallelogramLight parallelogramLight = std::get<ParallelogramLight>(light);
+                shading += computeShading(parallelogramLight.v0, parallelogramLight.color0, features, ray, hitInfo);
+                shading += computeShading(parallelogramLight.v0 + parallelogramLight.edge01, parallelogramLight.color1, features, ray, hitInfo);
+                shading += computeShading(parallelogramLight.v0 + parallelogramLight.edge02, parallelogramLight.color2, features, ray, hitInfo);
+                shading += computeShading(parallelogramLight.v0 + parallelogramLight.edge01 + parallelogramLight.edge02, parallelogramLight.color3, features, ray, hitInfo);
+            }
+        }
+
+        return shading;
 
     } else {
         // If shading is disabled, return the albedo of the material.
-        return hitInfo.material.kd;
+        return hitInfo.material.kd * lighted;
     }
 }
