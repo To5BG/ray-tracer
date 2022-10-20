@@ -5,26 +5,97 @@
 #include "texture.h"
 #include "interpolate.h"
 #include <glm/glm.hpp>
+#include <numeric>
 
+AxisAlignedBox calculateAABB(std::vector<Prim> prims) 
+{
+    glm::vec3 min = glm::vec3 { std::numeric_limits<float>::max() };
+    glm::vec3 max = glm::vec3 { std::numeric_limits<float>::min() };
+    std::for_each(prims.begin(), prims.end(), [&](Prim p) {
+        min = glm::vec3(
+            std::fmin(min.x, std::fmin(std::fmin(p.vs[0].x, p.vs[1].x), p.vs[2].x)),
+            std::fmin(min.y, std::fmin(std::fmin(p.vs[0].y, p.vs[1].y), p.vs[2].y)),
+            std::fmin(min.z, std::fmin(std::fmin(p.vs[0].z, p.vs[1].z), p.vs[2].z)));
+        max = glm::vec3(
+            std::fmax(max.x, std::fmax(std::fmax(p.vs[0].x, p.vs[1].x), p.vs[2].x)),
+            std::fmax(max.y, std::fmax(std::fmax(p.vs[0].y, p.vs[1].y), p.vs[2].y)),
+            std::fmax(max.z, std::fmax(std::fmax(p.vs[0].z, p.vs[1].z), p.vs[2].z)));
+    });
+    return { min, max };
+}
 
 BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     : m_pScene(pScene)
 {
-    // TODO: implement BVH construction.
+    //Initial values
+    this->m_numLeaves = 0;
+    this->m_numLevels = 0;
+    std::vector<BVHNode> nodes;
+
+    // Create prim vector
+    std::vector<Prim> prims;
+    for (int i = 0; i < pScene->meshes.size(); i++) 
+    {
+        Mesh& mesh = pScene->meshes[i];
+        for (int j = 0; j < mesh.triangles.size(); j++) {
+            glm::uvec3 t = mesh.triangles[j];
+            glm::vec3 v0 = mesh.vertices[t.x].position,
+                      v1 = mesh.vertices[t.y].position,
+                      v2 = mesh.vertices[t.z].position;
+            prims.push_back(Prim { std::vector { v0, v1, v2 }, (v0 + v1 + v2) / glm::vec3 { 3.0f }, t, j, i });
+        }
+    }
+    ConstructorHelper(prims, nodes, 0, -1, 0);
+    this->nodes = nodes;
+}
+
+void BoundingVolumeHierarchy::ConstructorHelper(std::vector<Prim> prims, std::vector<BVHNode>& nodes, int currLevel, int parentIdx, int idx)
+{
+    this->m_numLevels = std::max(this->m_numLevels, currLevel + 1);
+    BVHNode current;
+    current.n_id = idx;
+    current.box = calculateAABB(prims);
+
+    if (currLevel == max_level || prims.size() == 1) {
+        current.isLeafNode = true;
+        std::for_each(prims.begin(), prims.end(), [&](Prim p) {
+            current.ids.push_back(p.t_id);
+            current.ids.push_back(p.m_id);
+        });
+        this->m_numLeaves++;
+        nodes.push_back(current);
+        if (parentIdx != -1) 
+            nodes[parentIdx].ids.push_back(nodes.size() - 1);
+    } else {
+        current.isLeafNode = false;
+
+        // Sort by centroid
+        std::sort(prims.begin(), prims.end(), [&](Prim a, Prim b) {
+            return a.centr[currLevel % 3] < b.centr[currLevel % 3];
+        });
+
+        nodes.push_back(current);
+        if(parentIdx != -1) 
+            nodes[parentIdx].ids.push_back(nodes.size() - 1);
+
+        // Recursive call
+        ConstructorHelper({ prims.begin(), prims.begin() + (prims.size() / 2) }, nodes, currLevel + 1, nodes.size() - 1, idx + 1);
+        ConstructorHelper({ prims.begin() + (prims.size() / 2), prims.end() }, nodes, currLevel + 1, nodes.size() - 1, idx + 2);
+    }
 }
 
 // Return the depth of the tree that you constructed. This is used to tell the
 // slider in the UI how many steps it should display for Visual Debug 1.
 int BoundingVolumeHierarchy::numLevels() const
 {
-    return 1;
+    return this->m_numLevels;
 }
 
 // Return the number of leaf nodes in the tree that you constructed. This is used to tell the
 // slider in the UI how many steps it should display for Visual Debug 2.
 int BoundingVolumeHierarchy::numLeaves() const
 {
-    return 1;
+    return this->m_numLeaves;
 }
 
 // Use this function to visualize your BVH. This is useful for debugging. Use the functions in

@@ -7,10 +7,30 @@
 // Forward declaration.
 struct Scene;
 
+struct BVHNode {
+    bool isLeafNode;
+    int n_id;
+    // isLeafNode ? (triangles in AABB) : (2 child nodes);
+    std::vector<int> ids;
+    AxisAlignedBox box;
+};
+
+struct Prim {
+    std::vector<glm::vec3> vs;
+    glm::vec3 centr;
+    glm::uvec3 v_id;
+    int t_id;
+    int m_id;
+};
+
+AxisAlignedBox calculateAABB(std::vector<Prim> prims);
+
 class BoundingVolumeHierarchy {
 public:
     // Constructor. Receives the scene and builds the bounding volume hierarchy.
     BoundingVolumeHierarchy(Scene* pScene);
+
+    void ConstructorHelper(std::vector<Prim> prims, std::vector<BVHNode>& nodes, int currLevel, int parentIdx, int idx);
 
     // Return how many levels there are in the tree that you have constructed.
     [[nodiscard]] int numLevels() const;
@@ -34,4 +54,6 @@ private:
     int m_numLevels;
     int m_numLeaves;
     Scene* m_pScene;
+    std::vector<BVHNode> nodes;
+    int max_level = 24;
 };
