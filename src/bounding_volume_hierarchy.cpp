@@ -97,7 +97,7 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     this->nodes = nodes;
 }
 
-void BoundingVolumeHierarchy::ConstructorHelper(std::vector<Prim>& prims, std::vector<int> prim_ids,
+void BoundingVolumeHierarchy::ConstructorHelper(std::vector<Prim>& prims, std::vector<int> prim_ids, 
     std::vector<BVHNode>& nodes, int currLevel, int parentIdx, int idx)
 {
     this->m_numLevels = std::max(this->m_numLevels, currLevel + 1);
@@ -115,7 +115,7 @@ void BoundingVolumeHierarchy::ConstructorHelper(std::vector<Prim>& prims, std::v
         this->m_numLeaves++;
         nodes.push_back(current);
         if (parentIdx != -1) 
-            nodes[parentIdx].ids.push_back(nodes.size() - 1);
+            nodes[parentIdx].ids.push_back(idx);
     } else {
         current.isLeafNode = false;
 
@@ -126,11 +126,11 @@ void BoundingVolumeHierarchy::ConstructorHelper(std::vector<Prim>& prims, std::v
 
         nodes.push_back(current);
         if(parentIdx != -1) 
-            nodes[parentIdx].ids.push_back(nodes.size() - 1);
+            nodes[parentIdx].ids.push_back(idx);
 
         // Recursive call
-        ConstructorHelper(prims, { prim_ids.begin(), prim_ids.begin() + prim_ids.size() / 2 }, nodes, currLevel + 1, nodes.size() - 1, idx + 1);
-        ConstructorHelper(prims, { prim_ids.begin() + prim_ids.size() / 2, prim_ids.end() }, nodes, currLevel + 1, nodes.size() - 1, idx + 2);
+        ConstructorHelper(prims, { prim_ids.begin(), prim_ids.begin() + prim_ids.size() / 2 }, nodes, currLevel + 1, idx, nodes.size());
+        ConstructorHelper(prims, { prim_ids.begin() + prim_ids.size() / 2, prim_ids.end() }, nodes, currLevel + 1, idx, nodes.size());
     }
 }
 
@@ -158,10 +158,10 @@ void BoundingVolumeHierarchy::debugDrawLevel(int level)
     //drawShape(aabb, DrawMode::Filled, glm::vec3(0.0f, 1.0f, 0.0f), 0.2f);
 
     // Draw the AABB as a (white) wireframe box.
-    std::for_each(nodes.begin(), nodes.end(), [&](BVHNode n) {
+    std::for_each(this->nodes.begin(), this->nodes.end(), [&](BVHNode n) {
         if (n.level == level)
             drawAABB(n.box, DrawMode::Wireframe, glm::vec3(1.0f, 1.0f, 1.0f), 1.0f);
-        });
+    });
 }
 
 
@@ -176,11 +176,22 @@ void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
     //drawShape(aabb, DrawMode::Filled, glm::vec3(0.0f, 1.0f, 0.0f), 0.2f);
 
     // Draw the AABB as a (white) wireframe box.
-    AxisAlignedBox aabb { glm::vec3(0.0f), glm::vec3(0.0f, 1.05f, 1.05f) };
-    //drawAABB(aabb, DrawMode::Wireframe);
-    drawAABB(aabb, DrawMode::Filled, glm::vec3(0.05f, 1.0f, 0.05f), 0.1f);
-
     // once you find the leaf node, you can use the function drawTriangle (from draw.h) to draw the contained primitives
+    int acc = 0;
+    for (BVHNode curr : this->nodes) 
+    {
+        if (curr.isLeafNode) acc++;
+        if (acc == leafIdx && leafIdx > 0 && leafIdx < this->nodes.size()) {
+            drawAABB(curr.box, DrawMode::Wireframe, glm::vec3(1.0f, 1.0f, 1.0f), 1.0f);
+            for (int j = 0; j < curr.ids.size(); j += 2) 
+            {
+                Mesh &mesh = this->m_pScene->meshes[curr.ids[j + 1]];
+                glm::uvec3 t = mesh.triangles[curr.ids[j]];
+                drawTriangle(mesh.vertices[t.x], mesh.vertices[t.y], mesh.vertices[t.z]);
+            }
+            return;
+        }
+    }
 }
 
 
