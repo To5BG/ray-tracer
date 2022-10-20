@@ -52,22 +52,23 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     ConstructorHelper(prims, i, nodes, 0, -1, 0);
 
     //Iterative
-    //int idx = 0;
+    //int idx = 0, level = 0;
     //std::deque<std::vector<int>> queue;
     //queue.push_back(i);
 
     //while (queue.size() != 0) 
     //{
-    //    this->m_numLevels = std::max(this->m_numLevels, int(std::log2(idx - 1)));
+    //    level = int(std::log2(idx + 1));
     //    std::vector<int> prim_ids = queue.front();
     //    int parentIdx = (idx - 1) / 2;
     //    queue.pop_front();
 
     //    BVHNode current;
     //    current.n_id = idx;
+    //    current.level = level;
     //    current.box = calculateAABB(prims, prim_ids);
 
-    //    if (this->m_numLevels == max_level || prim_ids.size() == 1) {
+    //    if (level == max_level || prim_ids.size() == 1) {
     //        current.isLeafNode = true;
     //        std::for_each(prim_ids.begin(), prim_ids.end(), [&](int i) {
     //            current.ids.push_back(prims[i].t_id);
@@ -81,7 +82,7 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     //        current.isLeafNode = false;
     //        // Sort by centroid
     //        std::sort(prim_ids.begin(), prim_ids.end(), [&](int i, int j) {
-    //            return prims[i].centr[this->m_numLevels % 3] < prims[j].centr[this->m_numLevels % 3];
+    //            return prims[i].centr[level % 3] < prims[j].centr[level % 3];
     //        });
     //        nodes.push_back(current);
     //        if (parentIdx != -0)
@@ -92,15 +93,17 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     //    }
     //    idx++;
     //}
+    // this->m_numLevels = nodes[nodes.size() - 1].level + 1;
     this->nodes = nodes;
 }
 
 void BoundingVolumeHierarchy::ConstructorHelper(std::vector<Prim>& prims, std::vector<int> prim_ids,
     std::vector<BVHNode>& nodes, int currLevel, int parentIdx, int idx)
 {
-    this->m_numLevels = std::max(this->m_numLevels, currLevel);
+    this->m_numLevels = std::max(this->m_numLevels, currLevel + 1);
     BVHNode current;
-    current.n_id = idx;
+    //current.n_id = idx;
+    current.level = currLevel;
     current.box = calculateAABB(prims, prim_ids);
 
     if (currLevel == max_level || prim_ids.size() == 1) {
@@ -155,9 +158,10 @@ void BoundingVolumeHierarchy::debugDrawLevel(int level)
     //drawShape(aabb, DrawMode::Filled, glm::vec3(0.0f, 1.0f, 0.0f), 0.2f);
 
     // Draw the AABB as a (white) wireframe box.
-    AxisAlignedBox aabb { glm::vec3(0.0f), glm::vec3(0.0f, 1.05f, 1.05f) };
-    //drawAABB(aabb, DrawMode::Wireframe);
-    drawAABB(aabb, DrawMode::Filled, glm::vec3(0.05f, 1.0f, 0.05f), 0.1f);
+    std::for_each(nodes.begin(), nodes.end(), [&](BVHNode n) {
+        if (n.level == level)
+            drawAABB(n.box, DrawMode::Wireframe, glm::vec3(1.0f, 1.0f, 1.0f), 1.0f);
+        });
 }
 
 

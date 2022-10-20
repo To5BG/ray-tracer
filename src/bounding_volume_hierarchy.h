@@ -9,7 +9,8 @@ struct Scene;
 
 struct BVHNode {
     bool isLeafNode;
-    int n_id;
+    //int n_id;
+    int level;
     // isLeafNode ? (triangles in AABB) : (2 child nodes);
     // triangles are given as (triangle_id, mesh_id) pairs
     std::vector<int> ids;
