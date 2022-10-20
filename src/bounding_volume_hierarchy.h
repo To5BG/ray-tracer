@@ -19,6 +19,10 @@ struct BVHNode {
 struct Prim {
     // positions of vertices
     std::vector<glm::vec3> vs;
+    // vec3 of max coords
+    glm::vec3 max;
+    // vec3 of min
+    glm::vec3 min;
     // centroid pos
     glm::vec3 centr;
     // ids of vertices
