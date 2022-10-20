@@ -18,7 +18,7 @@ struct BVHNode {
 
 struct Prim {
     // positions of vertices
-    std::vector<glm::vec3> vs;
+    //std::vector<glm::vec3> vs;
     // vec3 of max coords
     glm::vec3 max;
     // vec3 of min
@@ -26,7 +26,7 @@ struct Prim {
     // centroid pos
     glm::vec3 centr;
     // ids of vertices
-    glm::uvec3 v_id;
+    //glm::uvec3 v_id;
     // id of triangle
     int t_id;
     // id of linked mesh

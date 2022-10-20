@@ -37,11 +37,11 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
             glm::vec3 v0 = mesh.vertices[t.x].position,
                       v1 = mesh.vertices[t.y].position,
                       v2 = mesh.vertices[t.z].position;
-            prims.push_back(Prim { std::vector { v0, v1, v2 }, {
+            prims.push_back(Prim { /*std::vector { v0, v1, v2 },*/ {
                     std::fmin(std::fmin(v0.x, v1.x), v2.x), std::fmin(std::fmin(v0.y, v1.y), v2.y), std::fmin(std::fmin(v0.z, v1.z), v2.z)
                 }, { 
-                    std::fmax(std::fmax(v0.x, v1.x), v2.x), std::fmax(std::fmax(v0.y, v1.y), v2.y), std::fmax(std::fmax(v0.z, v1.z), v2.z)
-                }, (v0 + v1 + v2) / glm::vec3 { 3.0f }, t, j, i });
+                    std::fmax(std::fmax(v0.x, v1.x), v2.x), std::fmax(std::fmax(v0.y, v1.y), v2.y), std::fmax(std::fmax(v0.z, v1.z), v2.z) }, 
+                    (v0 + v1 + v2) / glm::vec3 { 3.0f }, /*t,*/ j, i });
         }
     }
     std::vector<int> i(prims.size());
