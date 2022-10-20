@@ -6,6 +6,7 @@
 #include "interpolate.h"
 #include <glm/glm.hpp>
 #include <numeric>
+#include <deque>
 
 AxisAlignedBox calculateAABB(std::vector<Prim>& prims, std::vector<int>& prim_ids) 
 {
@@ -46,14 +47,58 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     }
     std::vector<int> i(prims.size());
     std::iota(i.begin(), i.end(), 0);
+
+    //Recursive
     ConstructorHelper(prims, i, nodes, 0, -1, 0);
+
+    //Iterative
+    //int idx = 0;
+    //std::deque<std::vector<int>> queue;
+    //queue.push_back(i);
+
+    //while (queue.size() != 0) 
+    //{
+    //    this->m_numLevels = std::max(this->m_numLevels, int(std::log2(idx - 1)));
+    //    std::vector<int> prim_ids = queue.front();
+    //    int parentIdx = (idx - 1) / 2;
+    //    queue.pop_front();
+
+    //    BVHNode current;
+    //    current.n_id = idx;
+    //    current.box = calculateAABB(prims, prim_ids);
+
+    //    if (this->m_numLevels == max_level || prim_ids.size() == 1) {
+    //        current.isLeafNode = true;
+    //        std::for_each(prim_ids.begin(), prim_ids.end(), [&](int i) {
+    //            current.ids.push_back(prims[i].t_id);
+    //            current.ids.push_back(prims[i].m_id);
+    //        });
+    //        this->m_numLeaves++;
+    //        nodes.push_back(current);
+    //        if (parentIdx != -0)
+    //            nodes[parentIdx].ids.push_back(idx);
+    //    } else {
+    //        current.isLeafNode = false;
+    //        // Sort by centroid
+    //        std::sort(prim_ids.begin(), prim_ids.end(), [&](int i, int j) {
+    //            return prims[i].centr[this->m_numLevels % 3] < prims[j].centr[this->m_numLevels % 3];
+    //        });
+    //        nodes.push_back(current);
+    //        if (parentIdx != -0)
+    //            nodes[parentIdx].ids.push_back(idx);
+
+    //        queue.push_back({ prim_ids.begin(), prim_ids.begin() + prim_ids.size() / 2 });
+    //        queue.push_back({ prim_ids.begin() + prim_ids.size() / 2, prim_ids.end() });
+    //    }
+    //    idx++;
+    //}
     this->nodes = nodes;
 }
 
 void BoundingVolumeHierarchy::ConstructorHelper(std::vector<Prim>& prims, std::vector<int> prim_ids,
     std::vector<BVHNode>& nodes, int currLevel, int parentIdx, int idx)
 {
-    this->m_numLevels = std::max(this->m_numLevels, currLevel + 1);
+    this->m_numLevels = std::max(this->m_numLevels, currLevel);
     BVHNode current;
     current.n_id = idx;
     current.box = calculateAABB(prims, prim_ids);
