@@ -27,7 +27,7 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
                 
                 return hitInfo.material.ks * getFinalColor(scene, bvh, reflection, features, rayDepth - 1);
             } else {
-                drawRay(ray, glm::vec3(1.0f));
+                drawRay(ray, Lo);
 
         // Set the color of the pixel to white if the ray hits.
         return Lo;
