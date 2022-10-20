@@ -24,8 +24,8 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
             if (rayDepth > 0 && hitInfo.material.ks != glm::vec3({0,0,0})) {
                 drawRay(ray, glm::vec3(1.0f));
                 Ray reflection = computeReflectionRay(ray, hitInfo);
-
-                return getFinalColor(scene, bvh, reflection, features, rayDepth - 1);
+                
+                return hitInfo.material.ks * getFinalColor(scene, bvh, reflection, features, rayDepth - 1);
             } else {
                 drawRay(ray, glm::vec3(1.0f));
 
