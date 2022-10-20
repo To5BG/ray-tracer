@@ -7,11 +7,12 @@
 #include <glm/glm.hpp>
 #include <numeric>
 
-AxisAlignedBox calculateAABB(std::vector<Prim> prims) 
+AxisAlignedBox calculateAABB(std::vector<Prim>& prims, std::vector<int>& prim_ids) 
 {
     glm::vec3 min = glm::vec3 { std::numeric_limits<float>::max() };
     glm::vec3 max = glm::vec3 { std::numeric_limits<float>::min() };
-    std::for_each(prims.begin(), prims.end(), [&](Prim p) {
+    std::for_each(prim_ids.begin(), prim_ids.end(), [&](int i) {
+        Prim p = prims[i];
         min = glm::vec3(
             std::fmin(min.x, std::fmin(std::fmin(p.vs[0].x, p.vs[1].x), p.vs[2].x)),
             std::fmin(min.y, std::fmin(std::fmin(p.vs[0].y, p.vs[1].y), p.vs[2].y)),
@@ -45,22 +46,25 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
             prims.push_back(Prim { std::vector { v0, v1, v2 }, (v0 + v1 + v2) / glm::vec3 { 3.0f }, t, j, i });
         }
     }
-    ConstructorHelper(prims, nodes, 0, -1, 0);
+    std::vector<int> i(prims.size());
+    std::iota(i.begin(), i.end(), 0);
+    ConstructorHelper(prims, i, nodes, 0, -1, 0);
     this->nodes = nodes;
 }
 
-void BoundingVolumeHierarchy::ConstructorHelper(std::vector<Prim> prims, std::vector<BVHNode>& nodes, int currLevel, int parentIdx, int idx)
+void BoundingVolumeHierarchy::ConstructorHelper(std::vector<Prim>& prims, std::vector<int> prim_ids,
+    std::vector<BVHNode>& nodes, int currLevel, int parentIdx, int idx)
 {
     this->m_numLevels = std::max(this->m_numLevels, currLevel + 1);
     BVHNode current;
     current.n_id = idx;
-    current.box = calculateAABB(prims);
+    current.box = calculateAABB(prims, prim_ids);
 
-    if (currLevel == max_level || prims.size() == 1) {
+    if (currLevel == max_level || prim_ids.size() == 1) {
         current.isLeafNode = true;
-        std::for_each(prims.begin(), prims.end(), [&](Prim p) {
-            current.ids.push_back(p.t_id);
-            current.ids.push_back(p.m_id);
+        std::for_each(prim_ids.begin(), prim_ids.end(), [&](int i) {
+            current.ids.push_back(prims[i].t_id);
+            current.ids.push_back(prims[i].m_id);
         });
         this->m_numLeaves++;
         nodes.push_back(current);
@@ -70,8 +74,8 @@ void BoundingVolumeHierarchy::ConstructorHelper(std::vector<Prim> prims, std::ve
         current.isLeafNode = false;
 
         // Sort by centroid
-        std::sort(prims.begin(), prims.end(), [&](Prim a, Prim b) {
-            return a.centr[currLevel % 3] < b.centr[currLevel % 3];
+        std::sort(prim_ids.begin(), prim_ids.end(), [&](int i, int j) {
+            return prims[i].centr[currLevel % 3] < prims[j].centr[currLevel % 3];
         });
 
         nodes.push_back(current);
@@ -79,8 +83,8 @@ void BoundingVolumeHierarchy::ConstructorHelper(std::vector<Prim> prims, std::ve
             nodes[parentIdx].ids.push_back(nodes.size() - 1);
 
         // Recursive call
-        ConstructorHelper({ prims.begin(), prims.begin() + (prims.size() / 2) }, nodes, currLevel + 1, nodes.size() - 1, idx + 1);
-        ConstructorHelper({ prims.begin() + (prims.size() / 2), prims.end() }, nodes, currLevel + 1, nodes.size() - 1, idx + 2);
+        ConstructorHelper(prims, { prim_ids.begin(), prim_ids.begin() + prim_ids.size() / 2 }, nodes, currLevel + 1, nodes.size() - 1, idx + 1);
+        ConstructorHelper(prims, { prim_ids.begin() + prim_ids.size() / 2, prim_ids.end() }, nodes, currLevel + 1, nodes.size() - 1, idx + 2);
     }
 }
 
