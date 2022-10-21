@@ -45,6 +45,14 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
                     (v0 + v1 + v2) / glm::vec3 { 3.0f }, /*t,*/ j, i });
         }
     }
+    // Add spheres
+    for (int i = 0; i < pScene->spheres.size(); i++) 
+    {
+        Sphere s = pScene->spheres[i];
+        prims.push_back(Prim { /*std::vector { s.center },*/
+            { s.center - s.radius }, { s.center + s.radius }, s.center, /*glm::vec3 { 0 },*/ i, -1 });
+    }
+    // Vector with ints from 0 to prim.size()
     std::vector<int> i(prims.size());
     std::iota(i.begin(), i.end(), 0);
 
@@ -185,9 +193,16 @@ void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
             drawAABB(curr.box, DrawMode::Wireframe, glm::vec3(1.0f, 1.0f, 1.0f), 1.0f);
             for (int j = 0; j < curr.ids.size(); j += 2) 
             {
-                Mesh &mesh = this->m_pScene->meshes[curr.ids[j + 1]];
+                int mesh_id = curr.ids[j + 1];
+                // sphere
+                if (mesh_id == -1) {
+                    Sphere& sphere = this->m_pScene->spheres[curr.ids[j]];
+                    drawSphere(sphere);
+                } else {
+                    Mesh& mesh = this->m_pScene->meshes[mesh_id];
                 glm::uvec3 t = mesh.triangles[curr.ids[j]];
                 drawTriangle(mesh.vertices[t.x], mesh.vertices[t.y], mesh.vertices[t.z]);
+            }
             }
             return;
         }
