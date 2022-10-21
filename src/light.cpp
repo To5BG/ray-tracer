@@ -14,7 +14,6 @@ int samplesPerUnit = 10;
 // you should fill in the vectors position and color with the sampled position and color
 void sampleSegmentLight(const SegmentLight& segmentLight, glm::vec3& position, glm::vec3& color)
 {
-    //TODO check if distance != 0
     float distance = glm::distance(segmentLight.endpoint0, segmentLight.endpoint1);
     float patition0 = 0.5f;
     float patition1 = 0.5f;
@@ -130,17 +129,19 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                 const SegmentLight segmentLight = std::get<SegmentLight>(light);
 
                 // the amount of samples per distance, multiplied by the distance to get the total amount of needed samples
-                float samples = (float)std::max((float)samplesPerUnit * glm::distance(segmentLight.endpoint0, segmentLight.endpoint1),2.0f);
-
+                float samples = (float)std::max((float)samplesPerUnit * glm::distance(segmentLight.endpoint0, segmentLight.endpoint1),1.0f);
+                srand(1);
                 // create the samples
-                for (int i = 0; i <= samples; i++) {
-                    glm::vec3 pos = segmentLight.endpoint0 * float(1 - i / samples) + segmentLight.endpoint1 * float(i / samples);
+                for (int i = 0; i < samples; i++) {
+                    glm::vec3 randomAddition = ((segmentLight.endpoint1 - segmentLight.endpoint0) / samples) * (float)((rand() % 100) / 100.0f);
+                    glm::vec3 pos = segmentLight.endpoint0 * float(1 - i / samples) + segmentLight.endpoint1 * float(i / samples) + randomAddition;
                     glm::vec3 col;
 
                     sampleSegmentLight(segmentLight, pos, col);
+                    lighted = testVisibilityLightSample(pos, col, bvh, features, ray, hitInfo);
 
                     // shade each sample, and divide by the total amount of samples 
-                    shading += computeShading(pos, col, features, ray, hitInfo) / samples;
+                    shading += computeShading(pos, col, features, ray, hitInfo) / samples * lighted;
                 }
 
 

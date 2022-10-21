@@ -201,7 +201,7 @@ int main(int argc, char** argv)
                     ImGui::SliderInt("BVH Leaf", &bvhDebugLeaf, 1, bvh.numLeaves());
             }
 
-            ImGui::SliderInt("Samples", &samplesPerUnit, 0, 100);
+            ImGui::SliderInt("Samples", &samplesPerUnit, 0, 1000);
 
             ImGui::Spacing();
             ImGui::Separator();
