@@ -198,6 +198,7 @@ int main(int argc, char** argv)
                 ImGui::Checkbox("Draw BVH Leaf", &debugBVHLeaf);
                 if (debugBVHLeaf)
                     ImGui::SliderInt("BVH Leaf", &bvhDebugLeaf, 1, bvh.numLeaves());
+                //ImGui::SliderInt("BVH Max Level", &bvh_max_level, 1, 24);
             }
 
             ImGui::Spacing();

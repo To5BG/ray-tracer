@@ -4,10 +4,12 @@
 #include "scene.h"
 #include "texture.h"
 #include "interpolate.h"
+#include "config.h"
 #include <glm/glm.hpp>
 #include <numeric>
 #include <deque>
 
+// Helper method for calcualating the new bounding volume based on prims and the ids of prims to calculate for
 AxisAlignedBox calculateAABB(std::vector<Prim>& prims, std::vector<int>& prim_ids) 
 {
     glm::vec3 min = glm::vec3 { std::numeric_limits<float>::max() };
@@ -24,12 +26,17 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     : m_pScene(pScene)
 {
     //Initial values
+    this->max_level = 10; // Hardcoded for now, add slider later
     this->m_numLeaves = 0;
     this->m_numLevels = 0;
     std::vector<BVHNode> nodes;
 
-    // Create prim vector
+    // Create prim vector -> store for each primitive ->
+    // triangle: *opt{vertices}, min_vector, max_vector, centroid, *opt{indexes of vertices}, index of triangle, index of mesh
+    // sphere: *opt{center x3}, min_vector, max_vector, center, *opt{zero * 3}, index of sphere, -1
+    // *opt{...} -> commented out, uncomment if needed for other features
     std::vector<Prim> prims;
+    // Add meshes
     for (int i = 0; i < pScene->meshes.size(); i++) 
     {
         Mesh& mesh = pScene->meshes[i];
@@ -105,16 +112,19 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     this->nodes = nodes;
 }
 
+// Constructor helper for recursion
 void BoundingVolumeHierarchy::ConstructorHelper(std::vector<Prim>& prims, std::vector<int> prim_ids, 
     std::vector<BVHNode>& nodes, int currLevel, int parentIdx, int idx)
 {
+    // Update number of levels
     this->m_numLevels = std::max(this->m_numLevels, currLevel + 1);
     BVHNode current;
     //current.n_id = idx;
     current.level = currLevel;
     current.box = calculateAABB(prims, prim_ids);
 
-    if (currLevel == max_level || prim_ids.size() == 1) {
+    // Handle leaf node
+    if (currLevel == this->max_level || prim_ids.size() == 1) {
         current.isLeafNode = true;
         std::for_each(prim_ids.begin(), prim_ids.end(), [&](int i) {
             current.ids.push_back(prims[i].t_id);
@@ -124,10 +134,11 @@ void BoundingVolumeHierarchy::ConstructorHelper(std::vector<Prim>& prims, std::v
         nodes.push_back(current);
         if (parentIdx != -1) 
             nodes[parentIdx].ids.push_back(idx);
+    // Handle internal node
     } else {
         current.isLeafNode = false;
 
-        // Sort by centroid
+        // Sort by centroid/sphere center
         std::sort(prim_ids.begin(), prim_ids.end(), [&](int i, int j) {
             return prims[i].centr[currLevel % 3] < prims[j].centr[currLevel % 3];
         });
@@ -154,6 +165,11 @@ int BoundingVolumeHierarchy::numLevels() const
 int BoundingVolumeHierarchy::numLeaves() const
 {
     return this->m_numLeaves;
+}
+
+int BoundingVolumeHierarchy::maxLevel() const
+{
+    return this->max_level;
 }
 
 // Use this function to visualize your BVH. This is useful for debugging. Use the functions in
@@ -200,9 +216,9 @@ void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
                     drawSphere(sphere);
                 } else {
                     Mesh& mesh = this->m_pScene->meshes[mesh_id];
-                glm::uvec3 t = mesh.triangles[curr.ids[j]];
-                drawTriangle(mesh.vertices[t.x], mesh.vertices[t.y], mesh.vertices[t.z]);
-            }
+                    glm::uvec3 t = mesh.triangles[curr.ids[j]];
+                    drawTriangle(mesh.vertices[t.x], mesh.vertices[t.y], mesh.vertices[t.z]);
+                }
             }
             return;
         }
