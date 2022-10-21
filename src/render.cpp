@@ -6,17 +6,32 @@
 #ifdef NDEBUG
 #include <omp.h>
 #endif
+#include <iostream>
+
 
 glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, int rayDepth)
 {
     HitInfo hitInfo;
+    
+   
     if (bvh.intersect(ray, hitInfo, features)) {
 
         glm::vec3 Lo = computeLightContribution(scene, bvh, features, ray, hitInfo);
 
         if (features.enableRecursive) {
-            Ray reflection = computeReflectionRay(ray, hitInfo);
+            
             // TODO: put your own implementation of recursive ray tracing here.
+            if (rayDepth > 0 && hitInfo.material.ks != glm::vec3({0,0,0})) {
+                drawRay(ray, glm::vec3(1.0f));
+                Ray reflection = computeReflectionRay(ray, hitInfo);
+                
+                return hitInfo.material.ks * getFinalColor(scene, bvh, reflection, features, rayDepth - 1);
+            } else {
+                drawRay(ray, Lo);
+
+        // Set the color of the pixel to white if the ray hits.
+        return Lo;
+            }
         }
 
         // Draw a white debug ray if the ray hits.
