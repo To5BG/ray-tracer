@@ -42,7 +42,7 @@ float testVisibilityLightSample(const glm::vec3& samplePos, const glm::vec3& deb
     // to prevent the ray from interacting with the object at the origin
     float epsilon = 0.00001f;
 
-    if (features.enableHardShadow) {
+    if (features.enableHardShadow || features.enableSoftShadow) {
 
         // the intersection point to calculate the visibility for, minus a really small offset for floating point issues
         glm::vec3 intersectPos = ray.origin + (1-epsilon) * ray.t * ray.direction;
@@ -111,37 +111,63 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
 
         // iterate over all lights
         for (auto& light : scene.lights) {
-
+            
             if (std::holds_alternative<PointLight>(light)) {
 
                 // pointLight
                 PointLight pointLight = std::get<PointLight>(light);
 
                 // add shadow
-                lighted = testVisibilityLightSample(pointLight.position, pointLight.color, bvh, features, ray, hitInfo);
+                lighted = features.enableHardShadow ? testVisibilityLightSample(pointLight.position, pointLight.color, bvh, features, ray, hitInfo) : 1.0f;
                
                 // shade
                 shading += computeShading(pointLight.position, pointLight.color, features, ray, hitInfo) * lighted;
 
             } else if (std::holds_alternative<SegmentLight>(light)) {
 
-                // segmentLight
-                const SegmentLight segmentLight = std::get<SegmentLight>(light);
+                if (features.enableSoftShadow) {
 
-                // the amount of samples per distance, multiplied by the distance to get the total amount of needed samples
-                float samples = (float)std::max((float)samplesPerUnit * glm::distance(segmentLight.endpoint0, segmentLight.endpoint1),1.0f);
-                srand(1);
-                // create the samples
-                for (int i = 0; i < samples; i++) {
-                    glm::vec3 randomAddition = ((segmentLight.endpoint1 - segmentLight.endpoint0) / samples) * (float)((rand() % 100) / 100.0f);
-                    glm::vec3 pos = segmentLight.endpoint0 * float(1 - i / samples) + segmentLight.endpoint1 * float(i / samples) + randomAddition;
-                    glm::vec3 col;
+                    // segmentLight
+                    const SegmentLight segmentLight = std::get<SegmentLight>(light);
 
-                    sampleSegmentLight(segmentLight, pos, col);
-                    lighted = testVisibilityLightSample(pos, col, bvh, features, ray, hitInfo);
+                    // the amount of samples per distance, multiplied by the distance to get the total amount of needed samples
+                    float samples = (float)std::max((float)samplesPerUnit * glm::distance(segmentLight.endpoint0, segmentLight.endpoint1),1.0f);
+                
+                    // sets the seed so that every time we run the for loop we get the same result for rand() (otherwise there is noise)
+                    srand(1);
 
-                    // shade each sample, and divide by the total amount of samples 
-                    shading += computeShading(pos, col, features, ray, hitInfo) / samples * lighted;
+                    // create the samples
+                    for (int i = 0; i < samples; i++) {
+
+                        glm::vec3 color;
+
+                        // random offset [-0.5,0.5)
+                        float randomUniform = (float)(((rand() % 100) - 50) / 100.0f);
+
+                        // randomize the sample position
+                        glm::vec3 segmentDistance = ((segmentLight.endpoint1 - segmentLight.endpoint0) / samples);
+                        glm::vec3 randomAddition = segmentDistance * randomUniform;
+
+                        // get the position based on sampling
+                        glm::vec3 interpolatedPos = segmentLight.endpoint0 * float(1 - i / samples) + segmentLight.endpoint1 * float(i / samples);
+                        glm::vec3 position = interpolatedPos - randomAddition;
+                    
+                        sampleSegmentLight(segmentLight, position, color);
+                        lighted = testVisibilityLightSample(position, color, bvh, features, ray, hitInfo);
+
+                        // generate a ray for the sample
+                        Ray sampleRay = Ray {};
+                        sampleRay.origin = position;
+                        sampleRay.direction = ray.direction * ray.t + ray.origin - position;
+                        sampleRay.t = 1;
+
+                        // check if there is no shadow
+                        if (lighted)
+                            drawRay(sampleRay, color);
+
+                        // shade each sample, and divide by the total amount of samples 
+                        shading += computeShading(position, color, features, ray, hitInfo) / samples * lighted;
+                    }
                 }
 
 
