@@ -1,5 +1,6 @@
 #include "texture.h"
 #include <framework/image.h>
+#include <iostream>
 
 glm::vec3 acquireTexel(const Image& image, const glm::vec2& texCoord, const Features& features)
 {
@@ -10,13 +11,8 @@ glm::vec3 acquireTexel(const Image& image, const glm::vec2& texCoord, const Feat
     // Note, the center of the first pixel is at image coordinates (0.5, 0.5)
     float xTex = texCoord.x;
     float yTex = texCoord.y;
-    float i = std::round((xTex * image.width)) - 0.5;
-    float j = std::round(((1 - yTex) * image.height)) - 0.5;
-    int toIndex = (j * image.width + i) * 3;
-
-    //if (features.enableTextureMapping) {
-    //
-    //}
-
+    float i = std::round((xTex * image.width)-0.5);
+    float j = std::round(((1 - yTex) * image.height)-0.5);
+    int toIndex = (j * image.width + i);
     return image.pixels[toIndex];
 }
