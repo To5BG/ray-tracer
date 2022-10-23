@@ -10,10 +10,7 @@ DISABLE_WARNINGS_POP()
 
 int samplesPerUnit = 10;
 
-int sampleSegment = 0;
 
-int sampleParallelI = 0;
-int sampleParallelJ = 0;
 
 // samples a segment light source
 // you should fill in the vectors position and color with the sampled position and color
@@ -30,7 +27,7 @@ void sampleSegmentLight(const SegmentLight& segmentLight, glm::vec3& position, g
     glm::vec3 randomAddition = segmentDistance * randomUniform;
 
     // get the position based on sampling
-    glm::vec3 interpolatedPos = segmentLight.endpoint0 * float(1 - sampleSegment / samples) + segmentLight.endpoint1 * float(sampleSegment / samples);
+    glm::vec3 interpolatedPos = segmentLight.endpoint0 * float(1 - position.x / samples) + segmentLight.endpoint1 * float(position.x / samples);
     position = interpolatedPos + randomAddition;
 
     float distance = glm::distance(segmentLight.endpoint0, segmentLight.endpoint1);
@@ -42,9 +39,11 @@ void sampleSegmentLight(const SegmentLight& segmentLight, glm::vec3& position, g
         patition0 = 1 - patition1;
     }
 
+   // std::cout << position.x << " " << position.y << " " << position.z<< std::endl;
+
     color = patition0 * segmentLight.color0 + patition1 * segmentLight.color1;
 
-    sampleSegment++;
+  //  std::cout << color.x << " " << color.y << " " << color.z<< std::endl;
 }
 
 // samples a parallelogram light source
@@ -56,8 +55,8 @@ void sampleParallelogramLight(const ParallelogramLight& parallelogramLight, glm:
     float dirJSamples = std::floor((float)std::max((float)samplesPerUnit * glm::length(parallelogramLight.edge01), 1.0f));
 
     // random position in sample 
-    float randomUniformI = (float)(((rand() % 100)) / 100.0f) + sampleParallelI;
-    float randomUniformJ = (float)(((rand() % 100)) / 100.0f) + sampleParallelJ;
+    float randomUniformI = (float)(((rand() % 100)) / 100.0f) + position.x;
+    float randomUniformJ = (float)(((rand() % 100)) / 100.0f) + position.y;
 
     // calculate the partitions for each color
     float x = float(randomUniformI / dirISamples);
@@ -73,7 +72,6 @@ void sampleParallelogramLight(const ParallelogramLight& parallelogramLight, glm:
     // bilinearly interpolate the color
     color = (1-y) * (x * parallelogramLight.color1 + (1 - x) * parallelogramLight.color0) + (y) * (x * parallelogramLight.color3 + (1 - x) * parallelogramLight.color2);
 
-    sampleParallelJ++;
 }
 
 // test the visibility at a given light sample
@@ -146,51 +144,97 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
     // for hard shadow this will indiciate if we should light the hitpoint or not
     float lighted = features.enableHardShadow ? 0.0f : 1.0f;
 
-    if (features.enableShading) {
-        // If shading is enabled, compute the contribution from all lights.
-        glm::vec3 shading = glm::vec3 { 0.0f };
+    // If shading is enabled, compute the contribution from all lights.
+    glm::vec3 shading = glm::vec3 { 0.0f };
 
-        // iterate over all lights
-        for (auto& light : scene.lights) {
+    // iterate over all lights
+    for (auto& light : scene.lights) {
             
-            if (std::holds_alternative<PointLight>(light)) {
+        if (std::holds_alternative<PointLight>(light)) {
 
-                // pointLight
-                PointLight pointLight = std::get<PointLight>(light);
+            // pointLight
+            PointLight pointLight = std::get<PointLight>(light);
 
-                // add shadow
-                lighted = features.enableHardShadow ? testVisibilityLightSample(pointLight.position, pointLight.color, bvh, features, ray, hitInfo) : 1.0f;
+            // add shadow
+            lighted = features.enableHardShadow ? testVisibilityLightSample(pointLight.position, pointLight.color, bvh, features, ray, hitInfo) : 1.0f;
                
-                // shade
-                shading += computeShading(pointLight.position, pointLight.color, features, ray, hitInfo) * lighted;
+            // shade
+            glm::vec3 shade = features.enableShading ? computeShading(pointLight.position, pointLight.color, features, ray, hitInfo) : hitInfo.material.kd;
+            shading += shade * lighted;
 
-            } else if (std::holds_alternative<SegmentLight>(light)) {
+        } else if (std::holds_alternative<SegmentLight>(light)) {
 
-                if (features.enableSoftShadow) {
+            if (features.enableSoftShadow) {
 
-                    // segmentLight
-                    const SegmentLight segmentLight = std::get<SegmentLight>(light);
+                // segmentLight
+                const SegmentLight segmentLight = std::get<SegmentLight>(light);
 
-                    // the amount of samples per distance, multiplied by the distance to get the total amount of needed samples
-                    float samples = std::floor((float)std::max((float)samplesPerUnit * glm::distance(segmentLight.endpoint0, segmentLight.endpoint1),1.0f));
+                // the amount of samples per distance, multiplied by the distance to get the total amount of needed samples
+                float samples = std::floor((float)std::max((float)samplesPerUnit * glm::distance(segmentLight.endpoint0, segmentLight.endpoint1),1.0f));
                 
-                    // sets the seed so that every time we run the for loop we get the same result for rand() (otherwise there is noise)
-                    srand(1);
+                // sets the seed so that every time we run the for loop we get the same result for rand() (otherwise there is noise)
+                srand(1);
+                 
+                // create the samples
+                for (int i = 0; i < samples; i++) {
 
-                    // reset the segment counter
-                    sampleSegment = 0;
+                    // initialize color and position
+                    glm::vec3 color;
+                    glm::vec3 position;
 
-                    // create the samples
-                    for (int i = 0; i < samples; i++) {
+                    // pass the index of the sample
+                    position.x = i;
 
-                        // initialize color and position
-                        glm::vec3 color;
+                    // create samples for position and color
+                    sampleSegmentLight(segmentLight, position, color);
+
+                    // check if in shadow
+                    lighted = testVisibilityLightSample(position, color, bvh, features, ray, hitInfo);
+
+                    // generate a ray for the sample
+                    Ray sampleRay = Ray {};
+                    sampleRay.origin = position;
+                    sampleRay.direction = ray.direction * ray.t + ray.origin - position;
+                    sampleRay.t = 1;
+
+                    // check if there is no shadow
+                    if (lighted)
+                        drawRay(sampleRay, color);
+
+                    // shade
+                    glm::vec3 shade = features.enableShading ? computeShading(position, color, features, ray, hitInfo) / samples : hitInfo.material.kd;
+                    shading += shade * lighted;
+                }
+            }
+
+        } else if(std::holds_alternative<ParallelogramLight>(light)) {
+
+            if (features.enableSoftShadow) {
+                // parallelogramLight
+                const ParallelogramLight parallelogramLight = std::get<ParallelogramLight>(light);
+
+                float dirXSamples = std::floor((float)std::max((float)samplesPerUnit * glm::length(parallelogramLight.edge01), 1.0f));
+                float dirYSamples = std::floor((float)std::max((float)samplesPerUnit * glm::length(parallelogramLight.edge01), 1.0f));
+
+                // sets the seed so that every time we run the for loop we get the same result for rand() (otherwise there is noise)
+                srand(1);
+
+                // iterate over both axis of the light
+                for (int i = 0; i < dirXSamples; i++) 
+                    for (int j = 0; j < dirYSamples; j++) {
+
+                        // create pointers for position and color
                         glm::vec3 position;
+                        glm::vec3 color;
 
-                        // create samples for position and color
-                        sampleSegmentLight(segmentLight, position, color);
+                        // pass the index of the sample
+                        position.x = i;
+                        position.y = j;
 
-                        // check if in shadow
+                        // sample
+                        sampleParallelogramLight(parallelogramLight, position, color);
+
+                        // calculate the light
                         lighted = testVisibilityLightSample(position, color, bvh, features, ray, hitInfo);
 
                         // generate a ray for the sample
@@ -200,64 +244,18 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                         sampleRay.t = 1;
 
                         // check if there is no shadow
-                        if (lighted)
+                        if (lighted) {
                             drawRay(sampleRay, color);
-
-                        // shade each sample, and divide by the total amount of samples 
-                        shading += computeShading(position, color, features, ray, hitInfo) / samples * lighted;
-                    }
-                }
-
-            } else if(std::holds_alternative<ParallelogramLight>(light)) {
-
-                if (features.enableSoftShadow) {
-                    // parallelogramLight
-                    const ParallelogramLight parallelogramLight = std::get<ParallelogramLight>(light);
-
-                    float dirXSamples = std::floor((float)std::max((float)samplesPerUnit * glm::length(parallelogramLight.edge01), 1.0f));
-                    float dirYSamples = std::floor((float)std::max((float)samplesPerUnit * glm::length(parallelogramLight.edge01), 1.0f));
-
-                    // sets the seed so that every time we run the for loop we get the same result for rand() (otherwise there is noise)
-                    srand(1);
-
-                    sampleParallelI = 0;
-
-                    for (int i = 0; i < dirXSamples; i++) {
-
-                        sampleParallelJ = 0;
-
-                        for (int j = 0; j < dirYSamples; j++) {
-
-                            glm::vec3 position;
-                            glm::vec3 color;
-
-                            sampleParallelogramLight(parallelogramLight, position, color);
-
-                            lighted = testVisibilityLightSample(position, color, bvh, features, ray, hitInfo);
-
-                            Ray sampleRay = Ray {};
-                            sampleRay.origin = position;
-                            sampleRay.direction = ray.direction * ray.t + ray.origin - position;
-                            sampleRay.t = 1;
-
-                            // check if there is no shadow
-                            if (lighted) {
-                                drawRay(sampleRay, color);
-                            }
-
-                            // shade each sample, and divide by the total amount of samples
-                            shading += computeShading(position, color, features, ray, hitInfo) / (dirXSamples * dirYSamples) * lighted;
                         }
-                        sampleParallelI++;
+
+                        // shade
+                        glm::vec3 shade = features.enableShading ? computeShading(position, color, features, ray, hitInfo) / (dirXSamples * dirYSamples) : hitInfo.material.kd;
+                        shading += shade * lighted;
                     }
                 }
             }
         }
-
-        return shading;
-
-    } else {
-        // If shading is disabled, return the albedo of the material.
-        return hitInfo.material.kd * lighted;
     }
+
+    return shading;
 }
