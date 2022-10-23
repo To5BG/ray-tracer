@@ -9,7 +9,11 @@ DISABLE_WARNINGS_POP()
 #include <iostream>
 
 int samplesPerUnit = 10;
+
 int sampleSegment = 0;
+
+int sampleParallelI = 0;
+int sampleParallelJ = 0;
 
 // samples a segment light source
 // you should fill in the vectors position and color with the sampled position and color
@@ -47,35 +51,29 @@ void sampleSegmentLight(const SegmentLight& segmentLight, glm::vec3& position, g
 // you should fill in the vectors position and color with the sampled position and color
 void sampleParallelogramLight(const ParallelogramLight& parallelogramLight, glm::vec3& position, glm::vec3& color)
 {
-    float distance01 = glm::length(parallelogramLight.edge01);
-    float distance02 = glm::length(parallelogramLight.edge02);
+    // amount of samples over both edges
+    float dirISamples = std::floor((float)std::max((float)samplesPerUnit * glm::length(parallelogramLight.edge01), 1.0f));
+    float dirJSamples = std::floor((float)std::max((float)samplesPerUnit * glm::length(parallelogramLight.edge01), 1.0f));
 
-    float patition0 = 0.5f;
-    float patition1 = 0.5f;
-    float patition2 = 0.5f;
-    float patition3 = 0.5f;
+    // random position in sample 
+    float randomUniformI = (float)(((rand() % 100)) / 100.0f) + sampleParallelI;
+    float randomUniformJ = (float)(((rand() % 100)) / 100.0f) + sampleParallelJ;
 
-    // move it back
-    position -= parallelogramLight.v0;
-    glm::vec3 leftColor;
-    glm::vec3 rightColor;
+    // calculate the partitions for each color
+    float x = float(randomUniformI / dirISamples);
+    float y = float(randomUniformJ / dirJSamples);
 
-    if (distance01 != 0) {   
-        patition1 = position.x;
-        patition0 = 1 - position.x;
-    }
+    // calculate offset from both edges
+    glm::vec3 Ipos = parallelogramLight.edge01 * x;
+    glm::vec3 Jpos = parallelogramLight.edge02 * y;
 
-    leftColor = patition0 * parallelogramLight.color0 + patition1 * parallelogramLight.color1;
-    rightColor = patition0 * parallelogramLight.color2 + patition1 * parallelogramLight.color3;
+    // calc position
+    position = parallelogramLight.v0 + Ipos + Jpos;
 
-    if (distance02 != 0) {
-        patition3 = position.y;
-        patition2 = 1 - position.y;
-    }
+    // bilinearly interpolate the color
+    color = (1-y) * (x * parallelogramLight.color1 + (1 - x) * parallelogramLight.color0) + (y) * (x * parallelogramLight.color3 + (1 - x) * parallelogramLight.color2);
 
-    position += parallelogramLight.v0;
-
-    color = patition2 * leftColor + patition3 * rightColor;
+    sampleParallelJ++;
 }
 
 // test the visibility at a given light sample
@@ -212,50 +210,47 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
 
             } else if(std::holds_alternative<ParallelogramLight>(light)) {
 
-                // parallelogramLight
-                const ParallelogramLight parallelogramLight = std::get<ParallelogramLight>(light);
-                
-                float dirXSamples = std::floor((float)std::max((float)samplesPerUnit * glm::length(parallelogramLight.edge01), 1.0f));
-                float dirYSamples = std::floor((float)std::max((float)samplesPerUnit * glm::length(parallelogramLight.edge01), 1.0f));
+                if (features.enableSoftShadow) {
+                    // parallelogramLight
+                    const ParallelogramLight parallelogramLight = std::get<ParallelogramLight>(light);
 
+                    float dirXSamples = std::floor((float)std::max((float)samplesPerUnit * glm::length(parallelogramLight.edge01), 1.0f));
+                    float dirYSamples = std::floor((float)std::max((float)samplesPerUnit * glm::length(parallelogramLight.edge01), 1.0f));
 
-                // sets the seed so that every time we run the for loop we get the same result for rand() (otherwise there is noise)
-                srand(1);
+                    // sets the seed so that every time we run the for loop we get the same result for rand() (otherwise there is noise)
+                    srand(1);
 
-                for (int i = 0; i < dirXSamples; i++) {
-                    float randomUniformI = (float)(((rand() % 100)) / 100.0f) + i;
+                    sampleParallelI = 0;
 
-                    for (int j = 0; j < dirYSamples; j++) {
-                        float randomUniformJ = (float)(((rand() % 100)) / 100.0f) + j;                         
+                    for (int i = 0; i < dirXSamples; i++) {
 
-                        glm::vec3 Ipos = parallelogramLight.edge01 * float(randomUniformI / dirXSamples);
-                        glm::vec3 Jpos = parallelogramLight.edge02 * float(randomUniformJ / dirYSamples);
+                        sampleParallelJ = 0;
 
-                        glm::vec3 interpolatedPos = parallelogramLight.v0 + Ipos + Jpos;
-                        glm::vec3 position = interpolatedPos;
-                      
-                        Ray sampleRay = Ray {};
-                        sampleRay.origin = position;
-                        sampleRay.direction = ray.direction * ray.t + ray.origin - position;
-                        sampleRay.t = 1;
+                        for (int j = 0; j < dirYSamples; j++) {
 
-                        glm::vec3 pos = glm::vec3 { 0 };
-                        pos.x = float(randomUniformI / dirXSamples);
-                        pos.y = float(randomUniformJ / dirYSamples);
+                            glm::vec3 position;
+                            glm::vec3 color;
 
-                        glm::vec3 color;
-                        sampleParallelogramLight(parallelogramLight, pos, color);
-                        
-                        lighted = testVisibilityLightSample(position, color, bvh, features, ray, hitInfo);
-                        
-                        // check if there is no shadow
-                        if (lighted) {
-                            drawRay(sampleRay, color);
+                            sampleParallelogramLight(parallelogramLight, position, color);
+
+                            lighted = testVisibilityLightSample(position, color, bvh, features, ray, hitInfo);
+
+                            Ray sampleRay = Ray {};
+                            sampleRay.origin = position;
+                            sampleRay.direction = ray.direction * ray.t + ray.origin - position;
+                            sampleRay.t = 1;
+
+                            // check if there is no shadow
+                            if (lighted) {
+                                drawRay(sampleRay, color);
+                            }
+
+                            // shade each sample, and divide by the total amount of samples
+                            shading += computeShading(position, color, features, ray, hitInfo) / (dirXSamples * dirYSamples) * lighted;
                         }
+                        sampleParallelI++;
                     }
-
                 }
-
             }
         }
 
