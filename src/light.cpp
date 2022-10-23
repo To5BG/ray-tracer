@@ -30,9 +30,35 @@ void sampleSegmentLight(const SegmentLight& segmentLight, glm::vec3& position, g
 // you should fill in the vectors position and color with the sampled position and color
 void sampleParallelogramLight(const ParallelogramLight& parallelogramLight, glm::vec3& position, glm::vec3& color)
 {
-    position = glm::vec3(0.0);
-    color = glm::vec3(0.0);
-    // TODO: implement this function.
+    float distance01 = glm::length(parallelogramLight.edge01);
+    float distance02 = glm::length(parallelogramLight.edge02);
+
+    float patition0 = 0.5f;
+    float patition1 = 0.5f;
+    float patition2 = 0.5f;
+    float patition3 = 0.5f;
+
+    // move it back
+    position -= parallelogramLight.v0;
+    glm::vec3 leftColor;
+    glm::vec3 rightColor;
+
+    if (distance01 != 0) {   
+        patition1 = position.x;
+        patition0 = 1 - position.x;
+    }
+
+    leftColor = patition0 * parallelogramLight.color0 + patition1 * parallelogramLight.color1;
+    rightColor = patition0 * parallelogramLight.color2 + patition1 * parallelogramLight.color3;
+
+    if (distance02 != 0) {
+        patition3 = position.y;
+        patition2 = 1 - position.y;
+    }
+
+    position += parallelogramLight.v0;
+
+    color = patition2 * leftColor + patition3 * rightColor;
 }
 
 // test the visibility at a given light sample
@@ -131,7 +157,7 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                     const SegmentLight segmentLight = std::get<SegmentLight>(light);
 
                     // the amount of samples per distance, multiplied by the distance to get the total amount of needed samples
-                    float samples = (float)std::max((float)samplesPerUnit * glm::distance(segmentLight.endpoint0, segmentLight.endpoint1),1.0f);
+                    float samples = std::floor((float)std::max((float)samplesPerUnit * glm::distance(segmentLight.endpoint0, segmentLight.endpoint1),1.0f));
                 
                     // sets the seed so that every time we run the for loop we get the same result for rand() (otherwise there is noise)
                     srand(1);
@@ -141,16 +167,16 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
 
                         glm::vec3 color;
 
-                        // random offset [-0.5,0.5)
-                        float randomUniform = (float)(((rand() % 100) - 50) / 100.0f);
+                        // random offset [0,1)
+                        float randomUniform = (float)(((rand() % 100)) / 100.0f);
 
                         // randomize the sample position
-                        glm::vec3 segmentDistance = ((segmentLight.endpoint1 - segmentLight.endpoint0) / samples);
+                        glm::vec3 segmentDistance = ((segmentLight.endpoint1 - segmentLight.endpoint0) / (float)samples);
                         glm::vec3 randomAddition = segmentDistance * randomUniform;
 
                         // get the position based on sampling
                         glm::vec3 interpolatedPos = segmentLight.endpoint0 * float(1 - i / samples) + segmentLight.endpoint1 * float(i / samples);
-                        glm::vec3 position = interpolatedPos - randomAddition;
+                        glm::vec3 position = interpolatedPos + randomAddition;
                     
                         sampleSegmentLight(segmentLight, position, color);
                         lighted = testVisibilityLightSample(position, color, bvh, features, ray, hitInfo);
@@ -170,16 +196,52 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                     }
                 }
 
-
             } else if(std::holds_alternative<ParallelogramLight>(light)) {
 
                 // parallelogramLight
-
                 const ParallelogramLight parallelogramLight = std::get<ParallelogramLight>(light);
-                shading += computeShading(parallelogramLight.v0, parallelogramLight.color0, features, ray, hitInfo);
-                shading += computeShading(parallelogramLight.v0 + parallelogramLight.edge01, parallelogramLight.color1, features, ray, hitInfo);
-                shading += computeShading(parallelogramLight.v0 + parallelogramLight.edge02, parallelogramLight.color2, features, ray, hitInfo);
-                shading += computeShading(parallelogramLight.v0 + parallelogramLight.edge01 + parallelogramLight.edge02, parallelogramLight.color3, features, ray, hitInfo);
+                
+                float dirXSamples = std::floor((float)std::max((float)samplesPerUnit * glm::length(parallelogramLight.edge01), 1.0f));
+                float dirYSamples = std::floor((float)std::max((float)samplesPerUnit * glm::length(parallelogramLight.edge01), 1.0f));
+
+
+                // sets the seed so that every time we run the for loop we get the same result for rand() (otherwise there is noise)
+                srand(1);
+
+                for (int i = 0; i < dirXSamples; i++) {
+                    float randomUniformI = (float)(((rand() % 100)) / 100.0f) + i;
+
+                    for (int j = 0; j < dirYSamples; j++) {
+                        float randomUniformJ = (float)(((rand() % 100)) / 100.0f) + j;                         
+
+                        glm::vec3 Ipos = parallelogramLight.edge01 * float(randomUniformI / dirXSamples);
+                        glm::vec3 Jpos = parallelogramLight.edge02 * float(randomUniformJ / dirYSamples);
+
+                        glm::vec3 interpolatedPos = parallelogramLight.v0 + Ipos + Jpos;
+                        glm::vec3 position = interpolatedPos;
+                      
+                        Ray sampleRay = Ray {};
+                        sampleRay.origin = position;
+                        sampleRay.direction = ray.direction * ray.t + ray.origin - position;
+                        sampleRay.t = 1;
+
+                        glm::vec3 pos = glm::vec3 { 0 };
+                        pos.x = float(randomUniformI / dirXSamples);
+                        pos.y = float(randomUniformJ / dirYSamples);
+
+                        glm::vec3 color;
+                        sampleParallelogramLight(parallelogramLight, pos, color);
+                        
+                        lighted = testVisibilityLightSample(position, color, bvh, features, ray, hitInfo);
+                        
+                        // check if there is no shadow
+                        if (lighted) {
+                            drawRay(sampleRay, color);
+                        }
+                    }
+
+                }
+
             }
         }
 
