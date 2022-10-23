@@ -9,11 +9,26 @@ DISABLE_WARNINGS_POP()
 #include <iostream>
 
 int samplesPerUnit = 10;
+int sampleSegment = 0;
 
 // samples a segment light source
 // you should fill in the vectors position and color with the sampled position and color
 void sampleSegmentLight(const SegmentLight& segmentLight, glm::vec3& position, glm::vec3& color)
 {
+    //amount of samples
+    float samples = std::floor((float)std::max((float)samplesPerUnit * glm::distance(segmentLight.endpoint0, segmentLight.endpoint1), 1.0f));
+
+    // random offset [0,1)
+    float randomUniform = (float)(((rand() % 100)) / 100.0f);
+
+    // randomize the sample position
+    glm::vec3 segmentDistance = ((segmentLight.endpoint1 - segmentLight.endpoint0) / (float)samples);
+    glm::vec3 randomAddition = segmentDistance * randomUniform;
+
+    // get the position based on sampling
+    glm::vec3 interpolatedPos = segmentLight.endpoint0 * float(1 - sampleSegment / samples) + segmentLight.endpoint1 * float(sampleSegment / samples);
+    position = interpolatedPos + randomAddition;
+
     float distance = glm::distance(segmentLight.endpoint0, segmentLight.endpoint1);
     float patition0 = 0.5f;
     float patition1 = 0.5f;
@@ -24,6 +39,8 @@ void sampleSegmentLight(const SegmentLight& segmentLight, glm::vec3& position, g
     }
 
     color = patition0 * segmentLight.color0 + patition1 * segmentLight.color1;
+
+    sampleSegment++;
 }
 
 // samples a parallelogram light source
@@ -162,23 +179,20 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                     // sets the seed so that every time we run the for loop we get the same result for rand() (otherwise there is noise)
                     srand(1);
 
+                    // reset the segment counter
+                    sampleSegment = 0;
+
                     // create the samples
                     for (int i = 0; i < samples; i++) {
 
+                        // initialize color and position
                         glm::vec3 color;
+                        glm::vec3 position;
 
-                        // random offset [0,1)
-                        float randomUniform = (float)(((rand() % 100)) / 100.0f);
-
-                        // randomize the sample position
-                        glm::vec3 segmentDistance = ((segmentLight.endpoint1 - segmentLight.endpoint0) / (float)samples);
-                        glm::vec3 randomAddition = segmentDistance * randomUniform;
-
-                        // get the position based on sampling
-                        glm::vec3 interpolatedPos = segmentLight.endpoint0 * float(1 - i / samples) + segmentLight.endpoint1 * float(i / samples);
-                        glm::vec3 position = interpolatedPos + randomAddition;
-                    
+                        // create samples for position and color
                         sampleSegmentLight(segmentLight, position, color);
+
+                        // check if in shadow
                         lighted = testVisibilityLightSample(position, color, bvh, features, ray, hitInfo);
 
                         // generate a ray for the sample
