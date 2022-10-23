@@ -220,7 +220,7 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                 srand(1);
 
                 // iterate over both axis of the light
-                for (int i = 0; i < dirXSamples; i++) 
+                for (int i = 0; i < dirXSamples; i++) {
                     for (int j = 0; j < dirYSamples; j++) {
 
                         // create pointers for position and color
