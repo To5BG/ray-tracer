@@ -235,13 +235,18 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
     // If BVH is not enabled, use the naive implementation.
     if (!features.enableAccelStructure) {
         bool hit = false;
+        bool foundIntersection = false;
+        Vertex v0Debug;
+        Vertex v1Debug;
+        Vertex v2Debug;
+        float smallestT = ray.t;
+        
         // Intersect with all triangles of all meshes.
         for (const auto& mesh : m_pScene->meshes) {
             for (const auto& tri : mesh.triangles) {
                 const auto v0 = mesh.vertices[tri[0]];
                 const auto v1 = mesh.vertices[tri[1]];
                 const auto v2 = mesh.vertices[tri[2]];
-                glm::vec3 point = ray.origin + ray.direction * ray.t;
                 if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo)) {
                     if (features.enableTextureMapping) {
                         if (mesh.material.kdTexture != nullptr) {
@@ -255,30 +260,43 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
                         hitInfo.material = mesh.material;
                         hit = true;
                     }
-                    if (features.enableNormalInterp) {
-                        glm::vec3 point = ray.origin + ray.direction * ray.t;
-                        float length = 0.5;
-                        Ray drawnRay = {};
-                        drawnRay.direction = v0.normal;
-                        drawnRay.origin = v0.position;
-                        drawnRay.t = length;
-                        drawRay(drawnRay);
-                        drawnRay.direction = v1.normal;
-                        drawnRay.origin = v1.position;
-                        drawRay(drawnRay);
-                        drawnRay.direction = v2.normal;
-                        drawnRay.origin = v2.position;
-                        drawRay(drawnRay);
-                        glm::vec3 color = glm::vec3{ 0.0, 0.7f, 0.0 };
-                        glm::vec3 barycentric = computeBarycentricCoord(v0.position, v1.position, v2.position, point);
-                        glm::vec3 interpolatedNormal = interpolateNormal(v0.normal, v1.normal, v2.normal, barycentric);
-                        drawnRay.direction = interpolatedNormal;
-                        drawnRay.origin = point;
-                        drawRay(drawnRay,color);
+
+                    if (features.enableNormalInterp){
+                        if (smallestT > ray.t){
+                            foundIntersection = true;
+                            smallestT = ray.t;
+                            v0Debug = v0;
+                            v1Debug = v1;
+                            v2Debug = v2;
+                        }
+                    
                     }
                 }
             }
         }
+
+        if (features.enableNormalInterp && foundIntersection == true) {
+            glm::vec3 point = ray.origin + ray.direction * ray.t;
+            float length = 0.5;
+            Ray drawnRay = {};
+            drawnRay.direction = v0Debug.normal;
+            drawnRay.origin = v0Debug.position;
+            drawnRay.t = length;
+            drawRay(drawnRay);
+            drawnRay.direction = v1Debug.normal;
+            drawnRay.origin = v1Debug.position;
+            drawRay(drawnRay);
+            drawnRay.direction = v2Debug.normal;
+            drawnRay.origin = v2Debug.position;
+            drawRay(drawnRay);
+            glm::vec3 color = glm::vec3 { 0.0, 0.7f, 0.0 };
+            glm::vec3 barycentric = computeBarycentricCoord(v0Debug.position, v1Debug.position, v2Debug.position, point);
+            glm::vec3 interpolatedNormal = interpolateNormal(v0Debug.normal, v1Debug.normal, v2Debug.normal, barycentric);
+            drawnRay.direction = interpolatedNormal;
+            drawnRay.origin = point;
+            drawRay(drawnRay, color);
+        }
+
         // Intersect with spheres.
         for (const auto& sphere : m_pScene->spheres)
             hit |= intersectRayWithShape(sphere, ray, hitInfo);
