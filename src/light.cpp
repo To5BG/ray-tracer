@@ -166,7 +166,7 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                     // create samples for position and color
                     sampleSegmentLight(segmentLight, position, color);
                     // check if in shadow
-                    lighted = testVisibilityLightSample(position, color, bvh, features, ray, hitInfo);
+                    lighted = features.enableSoftShadow ? testVisibilityLightSample(position, color, bvh, features, ray, hitInfo) : 1.0f;
                     // check if there is no shadow
                     if (lighted)
                         // dray ray for sample
@@ -200,7 +200,7 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                         // sample
                         sampleParallelogramLight(parallelogramLight, position, color);
                         // calculate the light
-                        lighted = testVisibilityLightSample(position, color, bvh, features, ray, hitInfo);
+                        lighted = features.enableSoftShadow ? testVisibilityLightSample(position, color, bvh, features, ray, hitInfo) : 1.0f;
                         // check if there is no shadow
                         if (lighted)
                             // generate a ray for the sample
