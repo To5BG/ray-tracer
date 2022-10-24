@@ -105,7 +105,7 @@ bool intersectRayWithShape(const Sphere& sphere, Ray& ray, HitInfo& hitInfo)
 bool intersectRayWithShape(const AxisAlignedBox& box, Ray& ray)
 {
     // slight optimization by applying divisions once
-    glm::vec3 invDir = { 1 / ray.direction.x, 1 / ray.direction.y, 1 / ray.direction.z };
+    glm::vec3 invDir = { 1.0f / ray.direction.x, 1.0f / ray.direction.y, 1.0f / ray.direction.z };
     // Store all Ts, even idx -> min, odd idx -> max
     std::array<float, 6> ts = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
     // For each dimension (i) -> set min and max to either float.min and float.max 
@@ -126,8 +126,9 @@ bool intersectRayWithShape(const AxisAlignedBox& box, Ray& ray)
     if (t_in > t_out || t_out <= 0 || isZero(t_in))
         return false;
     // Check if origin inside of AABB
-    ray.t = t_in < 0 ? t_out : t_in;
-    return true;
-
-
+    float newT = t_in < 0 ? t_out : t_in;
+    // Check if t is smaller than oldT
+    bool valid = newT < ray.t;
+    ray.t = valid ? newT : ray.t;
+    return valid;
 }
