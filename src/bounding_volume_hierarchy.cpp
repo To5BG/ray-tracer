@@ -235,16 +235,21 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
     // If BVH is not enabled, use the naive implementation.
     if (!features.enableAccelStructure) {
         bool hit = false;
+        bool foundIntersection = false;
+        Vertex v0Debug;
+        Vertex v1Debug;
+        Vertex v2Debug;
+        float smallestT = ray.t;
+        
         // Intersect with all triangles of all meshes.
         for (const auto& mesh : m_pScene->meshes) {
             for (const auto& tri : mesh.triangles) {
                 const auto v0 = mesh.vertices[tri[0]];
                 const auto v1 = mesh.vertices[tri[1]];
                 const auto v2 = mesh.vertices[tri[2]];
-                glm::vec3 point = ray.origin + ray.direction * ray.t;
                 if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo)) {
                     if (features.enableTextureMapping) {
-                        if (mesh.material.kdTexture!=nullptr) {
+                        if (mesh.material.kdTexture != nullptr) {
                             glm::vec2 texCoords = interpolateTexCoord(v0.texCoord, v1.texCoord, v2.texCoord, hitInfo.barycentricCoord);
                             glm::vec3 tex = acquireTexel(*mesh.material.kdTexture, texCoords, features);
                             hitInfo.material = mesh.material;
@@ -255,9 +260,39 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
                         hitInfo.material = mesh.material;
                         hit = true;
                     }
+
+                    if (features.enableNormalInterp){
+                        if (smallestT > ray.t){
+                            // update all debug rays and toggle the foundIntersection boolean
+                            foundIntersection = true;
+                            smallestT = ray.t;
+                            v0Debug = v0;
+                            v1Debug = v1;
+                            v2Debug = v2;
+                        }
+                    }
                 }
             }
         }
+
+        if (features.enableNormalInterp && foundIntersection) {
+            glm::vec3 point = ray.origin + ray.direction * ray.t;
+            float length = 0.5f;
+
+            // draw the rays of each vertex of the triangle
+            drawRay(Ray { v0Debug.position, v0Debug.normal, length });
+            drawRay(Ray { v1Debug.position, v1Debug.normal, length });
+            drawRay(Ray { v2Debug.position, v2Debug.normal, length });
+
+            // get the interpolated normal
+            glm::vec3 color = glm::vec3 { 0.0f, 1.0f, 0.0f };
+            glm::vec3 barycentric = computeBarycentricCoord(v0Debug.position, v1Debug.position, v2Debug.position, point);
+            glm::vec3 interpolatedNormal = interpolateNormal(v0Debug.normal, v1Debug.normal, v2Debug.normal, barycentric);
+
+            // draw the interpolated ray
+            drawRay(Ray {point, interpolatedNormal, length}, color);
+        }
+
         // Intersect with spheres.
         for (const auto& sphere : m_pScene->spheres)
             hit |= intersectRayWithShape(sphere, ray, hitInfo);

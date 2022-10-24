@@ -1,4 +1,5 @@
 #include "intersect.h"
+
 // Suppress warnings in third-party code.
 #include <framework/disable_all_warnings.h>
 DISABLE_WARNINGS_PUSH()
@@ -11,6 +12,7 @@ DISABLE_WARNINGS_POP()
 #include <array>
 #include <iostream>
 #include <interpolate.cpp>
+
 
 bool isZero(float a, float epsilon = 0.000001f)
 {
@@ -66,8 +68,11 @@ bool intersectRayWithTriangle(const glm::vec3& v0, const glm::vec3& v1, const gl
     ray.t = pit ? ray.t : oldT;
     if (pit) {
         hitInfo.normal = p.normal;
-        hitInfo.barycentricCoord = computeBarycentricCoord(v0, v1, v2, ray.origin + ray.direction * ray.t);
+        glm::vec3 point = ray.origin + ray.direction * ray.t;
+        hitInfo.barycentricCoord = computeBarycentricCoord(v0, v1, v2, point);
     }
+
+    
     return pit;
 }
 
