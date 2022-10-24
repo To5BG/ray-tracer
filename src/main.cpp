@@ -69,6 +69,7 @@ int main(int argc, char** argv)
 
         int bvhDebugLevel = 0;
         int bvhDebugLeaf = 0;
+
         bool debugBVHLevel { false };
         bool debugBVHLeaf { false };
         ViewMode viewMode { ViewMode::Rasterization };
@@ -200,6 +201,9 @@ int main(int argc, char** argv)
                     ImGui::SliderInt("BVH Leaf", &bvhDebugLeaf, 1, bvh.numLeaves());
                 //ImGui::SliderInt("BVH Max Level", &bvh_max_level, 1, 24);
             }
+
+            ImGui::SliderInt("Segment samples", &samplesPerUnit, 2, 500);
+            ImGui::SliderInt("Parallelogram samples", &samplesPerUnitParallel, 2, 100);
 
             ImGui::Spacing();
             ImGui::Separator();
