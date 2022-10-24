@@ -10,6 +10,7 @@ DISABLE_WARNINGS_POP()
 #include <cmath>
 #include <limits>
 #include <array>
+#include <iostream>
 #include <interpolate.cpp>
 
 
@@ -56,7 +57,8 @@ Plane trianglePlane(const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v
 /// Input: the three vertices of the triangle
 /// Output: if intersects then modify the hit parameter ray.t and return true, otherwise return false
 bool intersectRayWithTriangle(const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, Ray& ray, HitInfo& hitInfo)
-{
+{   
+    
     Plane p = trianglePlane(v0, v1, v2);
     float oldT = ray.t;
     if (!intersectRayWithPlane(p, ray))
