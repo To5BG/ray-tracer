@@ -11,8 +11,8 @@ glm::vec3 acquireTexel(const Image& image, const glm::vec2& texCoord, const Feat
     // Note, the center of the first pixel is at image coordinates (0.5, 0.5)
     float xTex = texCoord.x;
     float yTex = texCoord.y;
-    float i = std::round((xTex * image.width)-0.5);
-    float j = std::round(((yTex) * image.height)-0.5);
+    float i = std::round((xTex * image.width));
+    float j = std::round(((yTex) * image.height));
     int toIndex = (j * image.width + i);
     return image.pixels[toIndex];
 }
