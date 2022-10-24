@@ -231,7 +231,7 @@ void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
 // by a bounding volume hierarchy acceleration structure as described in the assignment. You can change any
 // file you like, including bounding_volume_hierarchy.h.
 bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Features& features) const
-{
+{   
     // If BVH is not enabled, use the naive implementation.
     if (!features.enableAccelStructure) {
         bool hit = false;
@@ -241,9 +241,20 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
                 const auto v0 = mesh.vertices[tri[0]];
                 const auto v1 = mesh.vertices[tri[1]];
                 const auto v2 = mesh.vertices[tri[2]];
+                glm::vec3 point = ray.origin + ray.direction * ray.t;
                 if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo)) {
-                    hitInfo.material = mesh.material;
-                    hit = true;
+                    if (features.enableTextureMapping) {
+                        if (mesh.material.kdTexture!=nullptr) {
+                            glm::vec2 texCoords = interpolateTexCoord(v0.texCoord, v1.texCoord, v2.texCoord, hitInfo.barycentricCoord);
+                            glm::vec3 tex = acquireTexel(*mesh.material.kdTexture, texCoords, features);
+                            hitInfo.material = mesh.material;
+                            hitInfo.material.kd = tex;
+                            hit = true;
+                        }
+                    } else {
+                        hitInfo.material = mesh.material;
+                        hit = true;
+                    }
                 }
             }
         }

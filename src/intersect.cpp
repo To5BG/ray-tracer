@@ -9,6 +9,8 @@ DISABLE_WARNINGS_POP()
 #include <cmath>
 #include <limits>
 #include <array>
+#include <iostream>
+#include <interpolate.cpp>
 
 bool isZero(float a, float epsilon = 0.000001f)
 {
@@ -53,7 +55,8 @@ Plane trianglePlane(const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v
 /// Input: the three vertices of the triangle
 /// Output: if intersects then modify the hit parameter ray.t and return true, otherwise return false
 bool intersectRayWithTriangle(const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, Ray& ray, HitInfo& hitInfo)
-{
+{   
+    
     Plane p = trianglePlane(v0, v1, v2);
     float oldT = ray.t;
     if (!intersectRayWithPlane(p, ray))
@@ -61,7 +64,10 @@ bool intersectRayWithTriangle(const glm::vec3& v0, const glm::vec3& v1, const gl
     // Update t if it lies on triangle and is smaller than curr ray.t
     bool pit = pointInTriangle(v0, v1, v2, p.normal, ray.origin + ray.direction * ray.t) && ray.t < oldT;
     ray.t = pit ? ray.t : oldT;
-    if(pit) hitInfo.normal = p.normal;
+    if (pit) {
+        hitInfo.normal = p.normal;
+        hitInfo.barycentricCoord = computeBarycentricCoord(v0, v1, v2, ray.origin + ray.direction * ray.t);
+    }
     return pit;
 }
 
