@@ -144,7 +144,7 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
 
         } else if (std::holds_alternative<SegmentLight>(light)) {
 
-            if (features.enableSoftShadow) {
+            if (features.enableSoftShadow || features.enableShading) {
                 // segmentLight
                 const SegmentLight segmentLight = std::get<SegmentLight>(light);
                 // length of segment
@@ -181,7 +181,7 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
 
         } else if(std::holds_alternative<ParallelogramLight>(light)) {
 
-            if (features.enableSoftShadow) {
+            if (features.enableSoftShadow || features.enableShading) {
                 // parallelogramLight
                 const ParallelogramLight parallelogramLight = std::get<ParallelogramLight>(light);
                 // amount of samples over both edges
