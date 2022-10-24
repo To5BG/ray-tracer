@@ -12,7 +12,7 @@ glm::vec3 acquireTexel(const Image& image, const glm::vec2& texCoord, const Feat
     float xTex = texCoord.x;
     float yTex = texCoord.y;
     float i = std::round((xTex * image.width)-0.5);
-    float j = std::round(((1 - yTex) * image.height)-0.5);
+    float j = std::round(((yTex) * image.height)-0.5);
     int toIndex = (j * image.width + i);
     return image.pixels[toIndex];
 }
