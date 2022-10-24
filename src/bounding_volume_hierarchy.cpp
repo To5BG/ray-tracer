@@ -263,38 +263,34 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
 
                     if (features.enableNormalInterp){
                         if (smallestT > ray.t){
+                            // update all debug rays and toggle the foundIntersection boolean
                             foundIntersection = true;
                             smallestT = ray.t;
                             v0Debug = v0;
                             v1Debug = v1;
                             v2Debug = v2;
                         }
-                    
                     }
                 }
             }
         }
 
-        if (features.enableNormalInterp && foundIntersection == true) {
+        if (features.enableNormalInterp && foundIntersection) {
             glm::vec3 point = ray.origin + ray.direction * ray.t;
-            float length = 0.5;
-            Ray drawnRay = {};
-            drawnRay.direction = v0Debug.normal;
-            drawnRay.origin = v0Debug.position;
-            drawnRay.t = length;
-            drawRay(drawnRay);
-            drawnRay.direction = v1Debug.normal;
-            drawnRay.origin = v1Debug.position;
-            drawRay(drawnRay);
-            drawnRay.direction = v2Debug.normal;
-            drawnRay.origin = v2Debug.position;
-            drawRay(drawnRay);
-            glm::vec3 color = glm::vec3 { 0.0, 0.7f, 0.0 };
+            float length = 0.5f;
+
+            // draw the rays of each vertex of the triangle
+            drawRay(Ray { v0Debug.position, v0Debug.normal, length });
+            drawRay(Ray { v1Debug.position, v1Debug.normal, length });
+            drawRay(Ray { v2Debug.position, v2Debug.normal, length });
+
+            // get the interpolated normal
+            glm::vec3 color = glm::vec3 { 0.0f, 1.0f, 0.0f };
             glm::vec3 barycentric = computeBarycentricCoord(v0Debug.position, v1Debug.position, v2Debug.position, point);
             glm::vec3 interpolatedNormal = interpolateNormal(v0Debug.normal, v1Debug.normal, v2Debug.normal, barycentric);
-            drawnRay.direction = interpolatedNormal;
-            drawnRay.origin = point;
-            drawRay(drawnRay, color);
+
+            // draw the interpolated ray
+            drawRay(Ray {point, interpolatedNormal, length}, color);
         }
 
         // Intersect with spheres.
