@@ -7,6 +7,7 @@
 #include "shading.h"
 
 extern int samplesPerUnit;
+extern int samplesPerUnitParallel;
 
 void sampleSegmentLight (const SegmentLight& segmentLight, glm::vec3& position, glm::vec3& color);
 

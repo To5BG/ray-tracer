@@ -9,7 +9,7 @@ DISABLE_WARNINGS_POP()
 #include <iostream>
 
 int samplesPerUnit = 10;
-
+int samplesPerUnitParallel = 10;
 
 
 // samples a segment light source
@@ -31,19 +31,19 @@ void sampleSegmentLight(const SegmentLight& segmentLight, glm::vec3& position, g
     position = interpolatedPos + randomAddition;
 
     float distance = glm::distance(segmentLight.endpoint0, segmentLight.endpoint1);
+    
+    // interpolation
     float patition0 = 0.5f;
     float patition1 = 0.5f;
    
+    // if the endpoints are at the same position make the lights both 50%
     if (distance != 0) {
         patition1 = glm::distance(segmentLight.endpoint0, position) / distance;
         patition0 = 1 - patition1;
     }
 
-   // std::cout << position.x << " " << position.y << " " << position.z<< std::endl;
-
+    // calculate the color
     color = patition0 * segmentLight.color0 + patition1 * segmentLight.color1;
-
-  //  std::cout << color.x << " " << color.y << " " << color.z<< std::endl;
 }
 
 // samples a parallelogram light source
@@ -51,8 +51,8 @@ void sampleSegmentLight(const SegmentLight& segmentLight, glm::vec3& position, g
 void sampleParallelogramLight(const ParallelogramLight& parallelogramLight, glm::vec3& position, glm::vec3& color)
 {
     // amount of samples over both edges
-    float dirISamples = std::floor((float)std::max((float)samplesPerUnit * glm::length(parallelogramLight.edge01), 1.0f));
-    float dirJSamples = std::floor((float)std::max((float)samplesPerUnit * glm::length(parallelogramLight.edge01), 1.0f));
+    float dirISamples = std::floor((float)std::max((float)samplesPerUnitParallel * glm::length(parallelogramLight.edge01), 1.0f));
+    float dirJSamples = std::floor((float)std::max((float)samplesPerUnitParallel * glm::length(parallelogramLight.edge01), 1.0f));
 
     // random position in sample 
     float randomUniformI = (float)(((rand() % 100)) / 100.0f) + position.x;
@@ -213,8 +213,8 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                 // parallelogramLight
                 const ParallelogramLight parallelogramLight = std::get<ParallelogramLight>(light);
 
-                float dirXSamples = std::floor((float)std::max((float)samplesPerUnit * glm::length(parallelogramLight.edge01), 1.0f));
-                float dirYSamples = std::floor((float)std::max((float)samplesPerUnit * glm::length(parallelogramLight.edge01), 1.0f));
+                float dirXSamples = std::floor((float)std::max((float)samplesPerUnitParallel * glm::length(parallelogramLight.edge01), 1.0f));
+                float dirYSamples = std::floor((float)std::max((float)samplesPerUnitParallel * glm::length(parallelogramLight.edge01), 1.0f));
 
                 // sets the seed so that every time we run the for loop we get the same result for rand() (otherwise there is noise)
                 srand(1);
@@ -257,5 +257,6 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
         }
     }
 
+    // return the shading amount
     return shading;
 }
