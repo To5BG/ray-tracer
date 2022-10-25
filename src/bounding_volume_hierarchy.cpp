@@ -227,50 +227,147 @@ void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
 }
 
 
-bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Features& features,std::stack<BVHNode> stack,bool& hit) const
+bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Features& features, std::stack<BVHNode>& stack,bool& hit, float& absoluteT) const
 {
-    int sizeOfNodes = nodes.size();
+    float oldT = ray.t;
     BVHNode node;
-    if (!stack.empty()) {   //If stack is not empty, get the top element
+    if (!stack.empty()) { // If stack is not empty, get the top element
         node = stack.top();
         stack.pop();
     } else {
-        return hit;    //If stack is empty, return whether or not ray hit a triangle
-    }  
-        if (node.isLeafNode) {  //If leaf
-            int i = 0;
-            while (i < node.ids.size()) {   //For each triangle mesh pair in ids
-                int triangleID = node.ids[i];   //Get triangle ID
-                int meshID = node.ids[i+1];    //Get mesh ID
-                Mesh mesh = m_pScene->meshes[meshID];   //Get mesh
-                glm::uvec3 triangle = mesh.triangles[triangleID];   //Get triangle
-                const auto v0 = mesh.vertices[triangle[0]];
-                const auto v1 = mesh.vertices[triangle[1]];
-                const auto v2 = mesh.vertices[triangle[2]];
-                if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo)) {
+        return hit; // If stack is empty, return whether or not ray hit a triangle
+    }
+    if (node.isLeafNode) { // If leaf
+        bool foundIntersection = false;
+        Vertex v0Debug;
+        Vertex v1Debug;
+        Vertex v2Debug;
+        float smallestT = ray.t;
+        int i = 0;
+        while (i < node.ids.size()) { // For each triangle mesh pair in ids
+            int triangleID = node.ids[i]; // Get triangle ID
+            int meshID = node.ids[i + 1]; // Get mesh ID
+            Mesh mesh = m_pScene->meshes[meshID]; // Get mesh
+            glm::uvec3 triangle = mesh.triangles[triangleID]; // Get triangle
+            const auto v0 = mesh.vertices[triangle[0]];
+            const auto v1 = mesh.vertices[triangle[1]];
+            const auto v2 = mesh.vertices[triangle[2]];
+            if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo)) {
+
+                if (features.enableTextureMapping) {
+                    if (mesh.material.kdTexture != nullptr) {
+                        glm::vec2 texCoords = interpolateTexCoord(v0.texCoord, v1.texCoord, v2.texCoord, hitInfo.barycentricCoord);
+                        glm::vec3 tex = acquireTexel(*mesh.material.kdTexture, texCoords, features);
+                        hitInfo.material = mesh.material;
+                        hitInfo.material.kd = tex;
+                        hit = true;
+                    }
+                } else {
                     hitInfo.material = mesh.material;
                     hit = true;
                 }
-                i += 2; //Go to next pair
-            }
-            return traversal(hitInfo, ray, features, stack, hit);   //Recursively call method
-        }
-        else //If internal
-        {
-            int left = node.ids[0];
-            int right = node.ids[1];
-            BVHNode leftNode = nodes[left];
-            BVHNode rightNode = nodes[right];
 
-            if (intersectRayWithShape(leftNode.box, ray)) { // If left box is intersected, add to stack
+                if (features.enableNormalInterp) {
+                    if (smallestT > ray.t) {
+                        // update all debug rays and toggle the foundIntersection boolean
+                        foundIntersection = true;
+                        smallestT = ray.t;
+                        v0Debug = v0;
+                        v1Debug = v1;
+                        v2Debug = v2;
+                    }
+                }
+
+            }
+            i += 2; // Go to next pair
+        }
+        if (ray.t < absoluteT) {
+            return hit;
+        }
+        return traversal(hitInfo, ray, features, stack, hit,absoluteT); // Recursively call method
+    } else // If internal
+    {
+        int left = node.ids[0];
+        int right = node.ids[1];
+        BVHNode leftNode = nodes[left];
+        BVHNode rightNode = nodes[right];
+        bool intersectsLeft = false;
+        bool intersectsRight = false;
+        float leftT;    //Used to decide which node to push on stack first; node with closes t gets pushed on stack first
+        float rightT;   
+        if (intersectRayWithShape(leftNode.box, ray)) { // If left box is intersected, add to stack
+            leftT = ray.t;
+            if (leftT < absoluteT) {
+                absoluteT = leftT;
+            }
+            intersectsLeft = true;
+            ray.t = oldT;
+            stack.push(leftNode);
+        }
+        if (intersectRayWithShape(rightNode.box, ray)) { // If right box is intersected, add to stack
+            rightT = ray.t;
+            if (rightT < absoluteT) {
+                absoluteT = rightT;
+            }
+            intersectsRight = true;
+            ray.t = oldT;
+            stack.push(rightNode);
+        }
+        if (intersectsLeft && intersectsRight) { // If both left and right node intersect, check which is closest. If needed, swap the two
+            if (leftT < rightT) {
+                stack.pop();
+                stack.pop();
+                stack.push(rightNode);
                 stack.push(leftNode);
             }
-            if (intersectRayWithShape(rightNode.box, ray)) { // If right box is intersected, add to stack
-                stack.push(rightNode);
-            }
-            return traversal(hitInfo, ray, features, stack, hit);   //Recusively call method
         }
+        return traversal(hitInfo, ray, features, stack, hit,absoluteT); // Recusively call method
+    }
+
+    //Non-recursive
+
+    //bool hit = false;
+    //BVHNode node;
+    //while (!stack.empty()) { // If stack is not empty, get the top element
+    //    node = stack.top();
+    //    stack.pop();
+    //
+    //if (node.isLeafNode) { // If leaf
+    //    int i = 0;
+    //    while (i < node.ids.size()) { // For each triangle mesh pair in ids
+    //        int triangleID = node.ids[i]; // Get triangle ID
+    //        int meshID = node.ids[i + 1]; // Get mesh ID
+    //        Mesh mesh = m_pScene->meshes[meshID]; // Get mesh
+    //        glm::uvec3 triangle = mesh.triangles[triangleID]; // Get triangle
+    //        const auto v0 = mesh.vertices[triangle[0]];
+    //        const auto v1 = mesh.vertices[triangle[1]];
+    //        const auto v2 = mesh.vertices[triangle[2]];
+    //        if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo)) {
+    //            hitInfo.material = mesh.material;
+    //            hit = true;
+    //        }
+    //        i += 2; // Go to next pair
+    //    }
+    //} else // If internal
+    //{
+    //    int left = node.ids[0];
+    //    int right = node.ids[1];
+    //    BVHNode leftNode = nodes[left];
+    //    BVHNode rightNode = nodes[right];
+
+    //    if (intersectRayWithShape(leftNode.box, ray)) { // If left box is intersected, add to stack
+    //        stack.push(leftNode);
+    //    }
+    //    if (intersectRayWithShape(rightNode.box, ray)) { // If right box is intersected, add to stack
+    //        stack.push(rightNode);
+    //    }
+    //}
+
+    //}
+    //return hit;
 }
+
+
 
 // Return true if something is hit, returns false otherwise. Only find hits if they are closer than t stored
 // in the ray and if the intersection is on the correct side of the origin (the new t >= 0). Replace the code
@@ -351,7 +448,7 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
         std::stack<BVHNode> stack;
         stack.push(root);
         bool hit = false;
-        return traversal(hitInfo,ray,features,stack,hit);
+        return traversal(hitInfo,ray,features,stack,hit,ray.t);
 
     }
 }
