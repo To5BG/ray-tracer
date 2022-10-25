@@ -8,12 +8,13 @@
 #include <glm/glm.hpp>
 #include <numeric>
 #include <deque>
+#include <stack>
 
 // Helper method for calcualating the new bounding volume based on prims and the ids of prims to calculate for
 AxisAlignedBox calculateAABB(std::vector<Prim>& prims, std::vector<int>& prim_ids) 
 {
     glm::vec3 min = glm::vec3 { std::numeric_limits<float>::max() };
-    glm::vec3 max = glm::vec3 { std::numeric_limits<float>::min() };
+    glm::vec3 max = glm::vec3 { -std::numeric_limits<float>::max() };
     std::for_each(prim_ids.begin(), prim_ids.end(), [&](int i) {
         Prim p = prims[i];
         min = { std::fmin(min.x, p.min.x), std::fmin(min.y, p.min.y), std::fmin(min.z, p.min.z) };
@@ -226,6 +227,51 @@ void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
 }
 
 
+bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Features& features,std::stack<BVHNode> stack,bool& hit) const
+{
+    int sizeOfNodes = nodes.size();
+    BVHNode node;
+    if (!stack.empty()) {   //If stack is not empty, get the top element
+        node = stack.top();
+        stack.pop();
+    } else {
+        return hit;    //If stack is empty, return whether or not ray hit a triangle
+    }  
+        if (node.isLeafNode) {  //If leaf
+            int i = 0;
+            while (i < node.ids.size()) {   //For each triangle mesh pair in ids
+                int triangleID = node.ids[i];   //Get triangle ID
+                int meshID = node.ids[i+1];    //Get mesh ID
+                Mesh mesh = m_pScene->meshes[meshID];   //Get mesh
+                glm::uvec3 triangle = mesh.triangles[triangleID];   //Get triangle
+                const auto v0 = mesh.vertices[triangle[0]];
+                const auto v1 = mesh.vertices[triangle[1]];
+                const auto v2 = mesh.vertices[triangle[2]];
+                if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo)) {
+                    hitInfo.material = mesh.material;
+                    hit = true;
+                }
+                i += 2; //Go to next pair
+            }
+            return traversal(hitInfo, ray, features, stack, hit);   //Recursively call method
+        }
+        else //If internal
+        {
+            int left = node.ids[0];
+            int right = node.ids[1];
+            BVHNode leftNode = nodes[left];
+            BVHNode rightNode = nodes[right];
+
+            if (intersectRayWithShape(leftNode.box, ray)) { // If left box is intersected, add to stack
+                stack.push(leftNode);
+            }
+            if (intersectRayWithShape(rightNode.box, ray)) { // If right box is intersected, add to stack
+                stack.push(rightNode);
+            }
+            return traversal(hitInfo, ray, features, stack, hit);   //Recusively call method
+        }
+}
+
 // Return true if something is hit, returns false otherwise. Only find hits if they are closer than t stored
 // in the ray and if the intersection is on the correct side of the origin (the new t >= 0). Replace the code
 // by a bounding volume hierarchy acceleration structure as described in the assignment. You can change any
@@ -301,6 +347,11 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
         // TODO: implement here the bounding volume hierarchy traversal.
         // Please note that you should use `features.enableNormalInterp` and `features.enableTextureMapping`
         // to isolate the code that is only needed for the normal interpolation and texture mapping features.
-        return false;
+        BVHNode root = nodes[0];
+        std::stack<BVHNode> stack;
+        stack.push(root);
+        bool hit = false;
+        return traversal(hitInfo,ray,features,stack,hit);
+
     }
 }

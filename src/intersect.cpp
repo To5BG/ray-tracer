@@ -113,7 +113,7 @@ bool intersectRayWithShape(const AxisAlignedBox& box, Ray& ray)
     for (int i = 0; i < 3; i++) {
         bool dir = ray.direction[i] > 0;
         //Min
-        ts[2 * i] = isZero(ray.direction[i]) ? std::numeric_limits<float>::min() 
+        ts[2 * i] = isZero(ray.direction[i]) ? -std::numeric_limits<float>::max() 
             : ((dir ? box.lower[i] : box.upper[i]) - ray.origin[i]) * invDir[i];
         //Max
         ts[2 * i + 1] = isZero(ray.direction[i]) ? std::numeric_limits<float>::max()
@@ -128,4 +128,6 @@ bool intersectRayWithShape(const AxisAlignedBox& box, Ray& ray)
     // Check if origin inside of AABB
     ray.t = t_in < 0 ? t_out : t_in;
     return true;
+
+
 }
