@@ -14,7 +14,7 @@ DISABLE_WARNINGS_POP()
 #include <interpolate.cpp>
 
 
-bool isZero(float a, float epsilon = 0.000001f)
+bool isZero(float a, float epsilon = 0.0000001f)
 {
     return std::fabs(a) <= epsilon;
 }
@@ -23,13 +23,18 @@ bool pointInTriangle(const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& 
     // Check if point lies on plane
     if (!isZero(glm::dot(n, p - v0)))
         return false;
-    glm::vec3 a = glm::cross(p - v2, p - v0);
-    glm::vec3 b = glm::cross(p - v1, p - v2);
-    glm::vec3 c = glm::cross(p - v0, p - v1);
+    float totalArea = 1.0f / glm::length(glm::cross(v0 - v2, v1 - v2));
+    float alpha = glm::length(glm::cross(p - v2, v1 - v2)) * totalArea;
+    float beta = glm::length(glm::cross(p - v2, v0 - v2)) * totalArea;
+    float gamma = glm::length(glm::cross(p - v1, v0 - v1)) * totalArea;
+    if (alpha < 0 || beta < 0 || alpha + beta > 1.0 || alpha + gamma > 1.0 || beta + gamma > 1.0)
+        return false;
+    return true;
+    //glm::vec3 a = glm::cross(p - v2, p - v0);
+    //glm::vec3 b = glm::cross(p - v1, p - v2);
+    //glm::vec3 c = glm::cross(p - v0, p - v1);
     // Check if all three cross-products point in the same direction
-    return glm::dot(a, b) >= 0 && 
-        glm::dot(b, c) >= 0 && 
-        glm::dot(a, c) >= 0;
+    // return glm::dot(a, b) >= 0 && glm::dot(a, c) >= 0;
 }
 
 bool intersectRayWithPlane(const Plane& plane, Ray& ray)
@@ -71,8 +76,6 @@ bool intersectRayWithTriangle(const glm::vec3& v0, const glm::vec3& v1, const gl
         glm::vec3 point = ray.origin + ray.direction * ray.t;
         hitInfo.barycentricCoord = computeBarycentricCoord(v0, v1, v2, point);
     }
-
-    
     return pit;
 }
 
