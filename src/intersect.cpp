@@ -14,7 +14,7 @@ DISABLE_WARNINGS_POP()
 #include <interpolate.cpp>
 
 
-bool isZero(float a, float epsilon = 0.0000001f)
+bool isZero(float a, float epsilon = 0.000001f)
 {
     return std::fabs(a) <= epsilon;
 }
