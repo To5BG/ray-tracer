@@ -27,8 +27,11 @@ AxisAlignedBox calculateAABB(std::vector<Prim>& prims, std::vector<int>& prim_id
 BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     : m_pScene(pScene)
 {
-    //Initial values
-    this->max_level = 10; // Hardcoded for now, add slider later
+    // Start clock for benchmarking
+    using clock = std::chrono::high_resolution_clock;
+    const auto start = clock::now();
+    // Initial values
+    this->max_level = 23; // Hardcoded for now, add slider later
     this->m_numLeaves = 0;
     this->m_numLevels = 0;
     std::vector<BVHNode> nodes;
@@ -67,51 +70,9 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
 
     //Recursive
     ConstructorHelper(prims, i, nodes, 0, -1, 0);
-
-    //Iterative
-    //int idx = 0, level = 0;
-    //std::deque<std::vector<int>> queue;
-    //queue.push_back(i);
-
-    //while (queue.size() != 0) 
-    //{
-    //    level = int(std::log2(idx + 1));
-    //    std::vector<int> prim_ids = queue.front();
-    //    int parentIdx = (idx - 1) / 2;
-    //    queue.pop_front();
-
-    //    BVHNode current;
-    //    current.n_id = idx;
-    //    current.level = level;
-    //    current.box = calculateAABB(prims, prim_ids);
-
-    //    if (level == max_level || prim_ids.size() == 1) {
-    //        current.isLeafNode = true;
-    //        std::for_each(prim_ids.begin(), prim_ids.end(), [&](int i) {
-    //            current.ids.push_back(prims[i].t_id);
-    //            current.ids.push_back(prims[i].m_id);
-    //        });
-    //        this->m_numLeaves++;
-    //        nodes.push_back(current);
-    //        if (parentIdx != -0)
-    //            nodes[parentIdx].ids.push_back(idx);
-    //    } else {
-    //        current.isLeafNode = false;
-    //        // Sort by centroid
-    //        std::sort(prim_ids.begin(), prim_ids.end(), [&](int i, int j) {
-    //            return prims[i].centr[level % 3] < prims[j].centr[level % 3];
-    //        });
-    //        nodes.push_back(current);
-    //        if (parentIdx != -0)
-    //            nodes[parentIdx].ids.push_back(idx);
-
-    //        queue.push_back({ prim_ids.begin(), prim_ids.begin() + prim_ids.size() / 2 });
-    //        queue.push_back({ prim_ids.begin() + prim_ids.size() / 2, prim_ids.end() });
-    //    }
-    //    idx++;
-    //}
-    // this->m_numLevels = nodes[nodes.size() - 1].level + 1;
     this->nodes = nodes;
+    const auto end = clock::now();
+    std::cout << "Time to create BVH: " << std::chrono::duration<float, std::milli>(end - start).count() << " milliseconds" << std::endl;
 }
 
 // Constructor helper for recursion
