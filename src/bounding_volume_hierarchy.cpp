@@ -9,6 +9,7 @@
 #include <numeric>
 #include <deque>
 #include <stack>
+#include <iostream>
 
 // Helper method for calcualating the new bounding volume based on prims and the ids of prims to calculate for
 AxisAlignedBox calculateAABB(std::vector<Prim>& prims, std::vector<int>& prim_ids) 
@@ -230,18 +231,26 @@ void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
 bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Features& features, std::stack<BVHNode> stack,bool hit, float absoluteT) const
 {
     float oldT = ray.t;
+    BVHNode node;
     if (!stack.empty()) { // If stack is not empty, get the top element
-    
-    if (stack.top().isLeafNode) { // If leaf
+        node = stack.top();
+        stack.pop();
+    } else {
+        return hit; // If stack is empty, return whether or not ray hit a triangle
+    }
+    if (node.level == 0 && !intersectAABB(node.box, ray)) {
+        return false;
+    }
+    if (node.isLeafNode) { // If leaf
         bool foundIntersection = false;
         Vertex v0Debug;
         Vertex v1Debug;
         Vertex v2Debug;
         float smallestT = ray.t;
-        int i = 0;
-        while (i < stack.top().ids.size()) { // For each triangle mesh pair in ids
-            int triangleID = stack.top().ids[i]; // Get triangle ID
-            int meshID = stack.top().ids[i + 1]; // Get mesh ID
+        //int i = 0;
+        //while (i < node.ids.size()) { // For each triangle mesh pair in ids
+            int triangleID = node.ids[0]; // Get triangle ID
+            int meshID = node.ids[1]; // Get mesh ID
             Mesh mesh = m_pScene->meshes[meshID]; // Get mesh
             glm::uvec3 triangle = mesh.triangles[triangleID]; // Get triangle
             const auto v0 = mesh.vertices[triangle[0]];
@@ -258,8 +267,10 @@ bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Featur
                         hit = true;
                     }
                 } else {
+                    
                     hitInfo.material = mesh.material;
                     hit = true;
+
                 }
 
                 if (features.enableNormalInterp) {
@@ -272,59 +283,60 @@ bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Featur
                         v2Debug = v2;
                     }
                 }
-
             }
-            i += 2; // Go to next pair
-        }
-        if (ray.t < absoluteT) {
-            return hit;
-        }
-        stack.pop();
-        return traversal(hitInfo, ray, features, stack, hit,absoluteT); // Recursively call method
+            //i += 2; // Go to next pair
+        //}
+        
+      return traversal(hitInfo, ray, features, stack, hit, absoluteT); // Recursively call method
     } else // If internal
     {
-        int left = stack.top().ids[0];
-        int right = stack.top().ids[1];
-        stack.pop();
-        /*BVHNode leftNode = nodes[left];
-        BVHNode rightNode = nodes[right];*/
+        int left = node.ids[0];
+        int right = node.ids[1];
+        BVHNode leftNode = nodes[left];
+        BVHNode rightNode = nodes[right];
         bool intersectsLeft = false;
         bool intersectsRight = false;
-        float leftT; // Used to decide which node to push on stack first; node with closes t gets pushed on stack first
+        float leftT ; // Used to decide which node to push on stack first; node with closes t gets pushed on stack first
         float rightT;
-        if (intersectRayWithShape(nodes[left].box, ray)) { // If left box is intersected, add to stack
+        
+        if (intersectRayWithShape(leftNode.box, ray)) { // If left box is intersected, add to stack
             leftT = ray.t;
             if (leftT < absoluteT) {
                 absoluteT = leftT;
             }
             intersectsLeft = true;
             ray.t = oldT;
-            stack.push(nodes[left]);
         }
-        if (intersectRayWithShape(nodes[right].box, ray)) { // If right box is intersected, add to stack
+
+        
+        if (intersectRayWithShape(rightNode.box, ray)) { // If right box is intersected, add to stack
             rightT = ray.t;
             if (rightT < absoluteT) {
                 absoluteT = rightT;
             }
             intersectsRight = true;
             ray.t = oldT;
-            stack.push(nodes[right]);
-        }
-        if (intersectsLeft && intersectsRight) { // If both left and right node intersect, check which is closest. If needed, swap the two
-            if (leftT < rightT) {
-                stack.pop();
-                stack.pop();
-                stack.push(nodes[left]);
-                stack.push(nodes[right]);
-            }
         }
         
+        if (intersectsLeft && intersectsRight) { // If both left and right node intersect, check which is closest. If needed, swap the two
+            if (leftT < rightT) {
+                
+                stack.push(rightNode);
+                stack.push(leftNode);
+            } else {
+                stack.push(leftNode);
+                stack.push(rightNode);
+            }
+        } else {
+            if (!intersectsLeft && intersectsRight) { 
+                stack.push(rightNode);
+            } else if (intersectsLeft && !intersectsRight) {
+                stack.push(leftNode);
+            }
+        }
         return traversal(hitInfo, ray, features, stack, hit, absoluteT); // Recusively call method
     }
-    
-    } else {
-        return hit; // If stack is empty, return whether or not ray hit a triangle
-    }
+} 
 
     //Non-recursive
 
@@ -367,7 +379,7 @@ bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Featur
 
     //}
     //return hit;
-}
+
 
 
 
@@ -450,7 +462,7 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
         std::stack<BVHNode> stack;
         stack.push(root);
         bool hit = false;
-        return traversal(hitInfo,ray,features,stack,hit,ray.t);
+        return traversal(hitInfo, ray, features, stack, hit, 1000);
 
     }
 }
