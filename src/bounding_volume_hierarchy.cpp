@@ -255,6 +255,9 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
                             hitInfo.material = mesh.material;
                             hitInfo.material.kd = tex;
                             hit = true;
+                        } else {
+                            hitInfo.material = mesh.material;
+                            hit = true;
                         }
                     } else {
                         hitInfo.material = mesh.material;
