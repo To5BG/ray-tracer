@@ -135,3 +135,33 @@ bool intersectRayWithShape(const AxisAlignedBox& box, Ray& ray)
     ray.t = valid ? newT : ray.t;
     return valid;
 }
+
+bool intersectAABB(const AxisAlignedBox& box, Ray& ray)
+{
+    float txmin = (box.lower.x - ray.origin.x) / ray.direction.x;
+    float txmax = (box.upper.x - ray.origin.x) / ray.direction.x;
+    float tymin = (box.lower.y - ray.origin.y) / ray.direction.y;
+    float tymax = (box.upper.y - ray.origin.y) / ray.direction.y;
+    float tzmin = (box.lower.z - ray.origin.z) / ray.direction.z;
+    float tzmax = (box.upper.z - ray.origin.z) / ray.direction.z;
+    float tinx = std::min(txmin, txmax);
+    float toutx = std::max(txmin, txmax);
+    float tiny = std::min(tymin, tymax);
+    float touty = std::max(tymin, tymax);
+    float tinz = std::min(tzmin, tzmax);
+    float toutz = std::max(tzmin, tzmax);
+    float tin = std::max(tinx, std::max(tiny, tinz));
+    float tout = std::min(toutx, std::min(touty, toutz));
+    if (tin < 0) {
+        if (tout < 0) {
+            return true;
+        } else { 
+            return true;
+        }
+    }
+    if (tin > tout || tout < 0) {
+        return false;
+    } else {
+       return true;
+    }
+}
