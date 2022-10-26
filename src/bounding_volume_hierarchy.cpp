@@ -235,20 +235,27 @@ bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Featur
     if (!stack.empty()) { // If stack is not empty, get the top element
         node = stack.top();
         stack.pop();
+        if (node.level == 0 && !intersectAABB(node.box, ray)) {
+            return false;
+        }
+        if (intersectRayWithShape(node.box, ray)) {
+            if (ray.t > absoluteT) {
+                return traversal(hitInfo, ray, features, stack, hit, absoluteT);
+            }
+            ray.t = oldT;
+        }
     } else {
         return hit; // If stack is empty, return whether or not ray hit a triangle
     }
-    if (node.level == 0 && !intersectAABB(node.box, ray)) {
-        return false;
-    }
+    
     if (node.isLeafNode) { // If leaf
         bool foundIntersection = false;
         Vertex v0Debug;
         Vertex v1Debug;
         Vertex v2Debug;
         float smallestT = ray.t;
-        //int i = 0;
-        //while (i < node.ids.size()) { // For each triangle mesh pair in ids
+        int i = 0;
+        while (i < node.ids.size()) { // For each triangle mesh pair in ids
             int triangleID = node.ids[0]; // Get triangle ID
             int meshID = node.ids[1]; // Get mesh ID
             Mesh mesh = m_pScene->meshes[meshID]; // Get mesh
@@ -267,10 +274,12 @@ bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Featur
                         hit = true;
                     }
                 } else {
-                    
+                    if (ray.t < absoluteT) {
+                        absoluteT = ray.t;
+                    }
+                    ray.t = oldT;
                     hitInfo.material = mesh.material;
                     hit = true;
-
                 }
 
                 if (features.enableNormalInterp) {
@@ -284,8 +293,8 @@ bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Featur
                     }
                 }
             }
-            //i += 2; // Go to next pair
-        //}
+            i += 2; // Go to next pair
+        }
         
       return traversal(hitInfo, ray, features, stack, hit, absoluteT); // Recursively call method
     } else // If internal
@@ -301,26 +310,18 @@ bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Featur
         
         if (intersectRayWithShape(leftNode.box, ray)) { // If left box is intersected, add to stack
             leftT = ray.t;
-            if (leftT < absoluteT) {
-                absoluteT = leftT;
-            }
             intersectsLeft = true;
             ray.t = oldT;
         }
-
         
         if (intersectRayWithShape(rightNode.box, ray)) { // If right box is intersected, add to stack
             rightT = ray.t;
-            if (rightT < absoluteT) {
-                absoluteT = rightT;
-            }
             intersectsRight = true;
             ray.t = oldT;
         }
         
         if (intersectsLeft && intersectsRight) { // If both left and right node intersect, check which is closest. If needed, swap the two
             if (leftT < rightT) {
-                
                 stack.push(rightNode);
                 stack.push(leftNode);
             } else {
