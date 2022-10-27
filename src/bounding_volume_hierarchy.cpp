@@ -189,27 +189,35 @@ void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
 }
 
 
-bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Features& features, std::stack<BVHNode> stack,bool hit, float absoluteT) const
+bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Features& features, std::stack<BVHNode> stack,bool hit, float &absoluteT) const
 {
-    float oldT = ray.t;
+    Ray infRay;
+    infRay.t = std::numeric_limits<float>::max();
+    infRay.origin = ray.origin;
+    infRay.direction = ray.direction;
+    float infT = infRay.t;
+
+    float oldT = ray.t; // ray distance
+    
     BVHNode node;
     if (!stack.empty()) { // If stack is not empty, get the top element
         node = stack.top();
         stack.pop();
-        if (node.level == 0 && !intersectRayWithShape(node.box, ray)) {
+        if (node.level == 0 && !intersectRayWithShape(node.box, infRay)) {
+            infRay.t = infT;
             return false;
         } else {
-            ray.t = oldT;
+            infRay.t = infT;
         }
-        if (intersectRayWithShape(node.box, ray)) {
-            if (ray.t > absoluteT) {
+        if (intersectRayWithShape(node.box, infRay)) {
+            if (infRay.t >= absoluteT) {
+                infRay.t = infT;
                 drawAABB(node.box, DrawMode::Wireframe, glm::vec3(0.5f, 0.0f, 0.7f), 1.0f); // purple
                 return traversal(hitInfo, ray, features, stack, hit, absoluteT);
             } else {
                 drawAABB(node.box, DrawMode::Wireframe, glm::vec3(0.0f, 0.7f, 0.0f), 1.0f); // green
-                ray.t = oldT;
+                infRay.t = infT;
             }
-            
         }
     } else {
         return hit; // If stack is empty, return whether or not ray hit a triangle
@@ -232,9 +240,9 @@ bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Featur
             const auto v2 = mesh.vertices[triangle[2]];
             if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo)) {
                 if (ray.t < absoluteT) {
-                    
                     absoluteT = ray.t;
                 }
+                
                 if (features.enableTextureMapping) {
                     if (mesh.material.kdTexture != nullptr) {
                         glm::vec2 texCoords = interpolateTexCoord(v0.texCoord, v1.texCoord, v2.texCoord, hitInfo.barycentricCoord);
@@ -269,7 +277,7 @@ bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Featur
             
             i += 2; // Go to next pair
         }
-        
+               
       return traversal(hitInfo, ray, features, stack, hit, absoluteT); // Recursively call method
     } else // If internal
     {
@@ -282,16 +290,16 @@ bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Featur
         float leftT ; // Used to decide which node to push on stack first; node with closes t gets pushed on stack first
         float rightT;
         
-        if (intersectRayWithShape(leftNode.box, ray)) { // If left box is intersected, add to stack
-            leftT = ray.t;
+        if (intersectRayWithShape(leftNode.box, infRay)) { // If left box is intersected, add to stack
+            leftT = infRay.t;
             intersectsLeft = true;
-            ray.t = oldT;
+            infRay.t = infT;
         }
         
-        if (intersectRayWithShape(rightNode.box, ray)) { // If right box is intersected, add to stack
-            rightT = ray.t;
+        if (intersectRayWithShape(rightNode.box, infRay)) { // If right box is intersected, add to stack
+            rightT = infRay.t;
             intersectsRight = true;
-            ray.t = oldT;
+            infRay.t = infT;
         }
         
         if (intersectsLeft && intersectsRight) { // If both left and right node intersect, check which is closest. If needed, swap the two
@@ -317,6 +325,7 @@ bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Featur
                // drawAABB(leftNode.box, DrawMode::Wireframe, glm::vec3(0.4f, 0.0f, 0.7f), 1.0f);
             }
         }
+        
         return traversal(hitInfo, ray, features, stack, hit, absoluteT); // Recusively call method
     }
 } 
@@ -448,7 +457,8 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
         std::stack<BVHNode> stack;
         stack.push(root);
         bool hit = false;
-        return traversal(hitInfo, ray, features, stack, hit, std::numeric_limits<float>::max());
+        float absoluteT = std::numeric_limits<float>::max();
+        return traversal(hitInfo, ray, features, stack, hit, absoluteT);
 
     }
 }

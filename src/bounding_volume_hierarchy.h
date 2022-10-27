@@ -71,7 +71,7 @@ public:
     bool intersect(Ray& ray, HitInfo& hitInfo, const Features& features) const;
 
     // Helper method that facilitates the recursive traversal of the BVH
-    bool traversal(HitInfo& hitInfo, Ray& ray, const Features& features, std::stack<BVHNode> stack,bool hit, float absoluteT) const;
+    bool traversal(HitInfo& hitInfo, Ray& ray, const Features& features, std::stack<BVHNode> stack,bool hit, float &absoluteT) const;
 
 private:
     int m_numLevels;
