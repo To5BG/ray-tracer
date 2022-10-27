@@ -9,11 +9,13 @@
 #include <numeric>
 #include <deque>
 
+int extr_max_level = 24;
+
 // Helper method for calcualating the new bounding volume based on prims and the ids of prims to calculate for
 AxisAlignedBox calculateAABB(std::vector<Prim>& prims, std::vector<int>& prim_ids) 
 {
     glm::vec3 min = glm::vec3 { std::numeric_limits<float>::max() };
-    glm::vec3 max = glm::vec3 { std::numeric_limits<float>::min() };
+    glm::vec3 max = glm::vec3 { -std::numeric_limits<float>::max() };
     std::for_each(prim_ids.begin(), prim_ids.end(), [&](int i) {
         Prim p = prims[i];
         min = { std::fmin(min.x, p.min.x), std::fmin(min.y, p.min.y), std::fmin(min.z, p.min.z) };
@@ -26,7 +28,7 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     : m_pScene(pScene)
 {
     //Initial values
-    this->max_level = 10; // Hardcoded for now, add slider later
+    this->max_level = extr_max_level; // Hardcoded for now, add slider later
     this->m_numLeaves = 0;
     this->m_numLevels = 0;
     std::vector<BVHNode> nodes;

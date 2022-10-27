@@ -28,6 +28,7 @@ DISABLE_WARNINGS_POP()
 #include <string>
 #include <thread>
 #include <variant>
+#include <bounding_volume_hierarchy.h>
 
 // This is the main application. The code in here does not need to be modified.
 enum class ViewMode {
@@ -69,9 +70,11 @@ int main(int argc, char** argv)
 
         int bvhDebugLevel = 0;
         int bvhDebugLeaf = 0;
+        int bvhDebugMaxLevel = 24;
 
         bool debugBVHLevel { false };
         bool debugBVHLeaf { false };
+        bool debugBVHMaxLevel { false };
         ViewMode viewMode { ViewMode::Rasterization };
 
         window.registerKeyCallback([&](int key, int /* scancode */, int action, int /* mods */) {
@@ -199,7 +202,9 @@ int main(int argc, char** argv)
                 ImGui::Checkbox("Draw BVH Leaf", &debugBVHLeaf);
                 if (debugBVHLeaf)
                     ImGui::SliderInt("BVH Leaf", &bvhDebugLeaf, 1, bvh.numLeaves());
-                //ImGui::SliderInt("BVH Max Level", &bvh_max_level, 1, 24);
+                ImGui::Checkbox("Change BVH Max Level", &debugBVHMaxLevel);
+                if (debugBVHMaxLevel)
+                    ImGui::SliderInt("BVH Max Level", &bvhDebugMaxLevel, 1, 24);
             }
 
             ImGui::SliderInt("Segment samples", &samplesPerUnit, 2, 500);
@@ -336,7 +341,7 @@ int main(int argc, char** argv)
 
                 drawLightsOpenGL(scene, camera, selectedLightIdx);
 
-                if (debugBVHLevel || debugBVHLeaf) {
+                if (debugBVHLevel || debugBVHLeaf || debugBVHMaxLevel) {
                     glPushAttrib(GL_ALL_ATTRIB_BITS);
                     setOpenGLMatrices(camera);
                     glDisable(GL_LIGHTING);
@@ -351,6 +356,11 @@ int main(int argc, char** argv)
                         bvh.debugDrawLevel(bvhDebugLevel);
                     if (debugBVHLeaf)
                         bvh.debugDrawLeaf(bvhDebugLeaf);
+                    if (debugBVHMaxLevel && bvhDebugMaxLevel != extr_max_level) 
+                    {
+                        extr_max_level = bvhDebugMaxLevel;
+                        bvh = BvhInterface { &scene };
+                    }
                     enableDebugDraw = false;
                     glPopAttrib();
                 }
