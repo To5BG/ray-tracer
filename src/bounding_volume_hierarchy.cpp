@@ -196,14 +196,20 @@ bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Featur
     if (!stack.empty()) { // If stack is not empty, get the top element
         node = stack.top();
         stack.pop();
-        if (node.level == 0 && !intersectAABB(node.box, ray)) {
+        if (node.level == 0 && !intersectRayWithShape(node.box, ray)) {
             return false;
+        } else {
+            ray.t = oldT;
         }
         if (intersectRayWithShape(node.box, ray)) {
             if (ray.t > absoluteT) {
+                drawAABB(node.box, DrawMode::Wireframe, glm::vec3(0.5f, 0.0f, 0.7f), 1.0f); // purple
                 return traversal(hitInfo, ray, features, stack, hit, absoluteT);
+            } else {
+                drawAABB(node.box, DrawMode::Wireframe, glm::vec3(0.0f, 0.7f, 0.0f), 1.0f); // green
+                ray.t = oldT;
             }
-            ray.t = oldT;
+            
         }
     } else {
         return hit; // If stack is empty, return whether or not ray hit a triangle
@@ -217,15 +223,18 @@ bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Featur
         float smallestT = ray.t;
         int i = 0;
         while (i < node.ids.size()) { // For each triangle mesh pair in ids
-            int triangleID = node.ids[0]; // Get triangle ID
-            int meshID = node.ids[1]; // Get mesh ID
+            int triangleID = node.ids[i]; // Get triangle ID
+            int meshID = node.ids[i+1]; // Get mesh ID
             Mesh mesh = m_pScene->meshes[meshID]; // Get mesh
             glm::uvec3 triangle = mesh.triangles[triangleID]; // Get triangle
             const auto v0 = mesh.vertices[triangle[0]];
             const auto v1 = mesh.vertices[triangle[1]];
             const auto v2 = mesh.vertices[triangle[2]];
             if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo)) {
-
+                if (ray.t < absoluteT) {
+                    
+                    absoluteT = ray.t;
+                }
                 if (features.enableTextureMapping) {
                     if (mesh.material.kdTexture != nullptr) {
                         glm::vec2 texCoords = interpolateTexCoord(v0.texCoord, v1.texCoord, v2.texCoord, hitInfo.barycentricCoord);
@@ -236,17 +245,17 @@ bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Featur
                     } else {
                         hitInfo.material = mesh.material;
                         hit = true;
+                        ray.t = oldT;
                     }
                 } else {
-                    if (ray.t < absoluteT) {
-                        absoluteT = ray.t;
-                    }
-                    ray.t = oldT;
+                    
                     hitInfo.material = mesh.material;
                     hit = true;
+                    
                 }
 
                 if (features.enableNormalInterp) {
+
                     if (smallestT > ray.t) {
                         // update all debug rays and toggle the foundIntersection boolean
                         foundIntersection = true;
@@ -257,6 +266,7 @@ bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Featur
                     }
                 }
             }
+            
             i += 2; // Go to next pair
         }
         
@@ -288,15 +298,23 @@ bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Featur
             if (leftT < rightT) {
                 stack.push(rightNode);
                 stack.push(leftNode);
+                //drawAABB(rightNode.box, DrawMode::Wireframe, glm::vec3(0.4f, 0.0f, 0.7f), 1.0f);
+                //drawAABB(leftNode.box, DrawMode::Wireframe, glm::vec3(0.4f, 0.0f, 0.7f), 1.0f);
             } else {
                 stack.push(leftNode);
                 stack.push(rightNode);
+                //drawAABB(rightNode.box, DrawMode::Wireframe, glm::vec3(0.4f, 0.0f, 0.7f), 1.0f);
+               // drawAABB(leftNode.box, DrawMode::Wireframe, glm::vec3(0.4f, 0.0f, 0.7f), 1.0f);
             }
         } else {
             if (!intersectsLeft && intersectsRight) { 
                 stack.push(rightNode);
+               // drawAABB(rightNode.box, DrawMode::Wireframe, glm::vec3(0.4f, 0.0f, 0.7f), 1.0f);
+               // drawAABB(leftNode.box, DrawMode::Wireframe, glm::vec3(0.4f, 0.0f, 0.7f), 1.0f);
             } else if (intersectsLeft && !intersectsRight) {
                 stack.push(leftNode);
+               // drawAABB(rightNode.box, DrawMode::Wireframe, glm::vec3(0.4f, 0.0f, 0.7f), 1.0f);
+               // drawAABB(leftNode.box, DrawMode::Wireframe, glm::vec3(0.4f, 0.0f, 0.7f), 1.0f);
             }
         }
         return traversal(hitInfo, ray, features, stack, hit, absoluteT); // Recusively call method
