@@ -293,7 +293,7 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
             glm::vec3 color = glm::vec3 { 0.0f, 1.0f, 0.0f };
             glm::vec3 barycentric = computeBarycentricCoord(v0Debug.position, v1Debug.position, v2Debug.position, point);
             glm::vec3 interpolatedNormal = interpolateNormal(v0Debug.normal, v1Debug.normal, v2Debug.normal, barycentric);
-
+            hitInfo.normal = interpolatedNormal;
             // draw the interpolated ray
             drawRay(Ray {point, interpolatedNormal, length}, color);
         }
