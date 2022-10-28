@@ -13,6 +13,8 @@
 
 extern bool intersectedButNotTraversed;
 
+int extr_max_level = 24;
+
 // Helper method for calcualating the new bounding volume based on prims and the ids of prims to calculate for
 AxisAlignedBox calculateAABB(std::vector<Prim>& prims, std::vector<int>& prim_ids) 
 {
@@ -33,7 +35,7 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     using clock = std::chrono::high_resolution_clock;
     const auto start = clock::now();
     // Initial values
-    this->max_level = 23; // Hardcoded for now, add slider later
+    this->max_level = extr_max_level;
     this->m_numLeaves = 0;
     this->m_numLevels = 0;
     std::vector<BVHNode> nodes;
@@ -455,7 +457,7 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
             glm::vec3 color = glm::vec3 { 0.0f, 1.0f, 0.0f };
             glm::vec3 barycentric = computeBarycentricCoord(v0Debug.position, v1Debug.position, v2Debug.position, point);
             glm::vec3 interpolatedNormal = interpolateNormal(v0Debug.normal, v1Debug.normal, v2Debug.normal, barycentric);
-
+            hitInfo.normal = interpolatedNormal;
             // draw the interpolated ray
             drawRay(Ray {point, interpolatedNormal, length}, color);
         }

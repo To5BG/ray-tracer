@@ -8,6 +8,8 @@
 // Forward declaration.
 struct Scene;
 
+extern int extr_max_level;
+
 struct BVHNode {
     bool isLeafNode;
     //int n_id;
