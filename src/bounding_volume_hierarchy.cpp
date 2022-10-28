@@ -269,7 +269,6 @@ bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Featur
                     } else {
                         hitInfo.material = mesh.material;
                         hit = true;
-                        ray.t = oldT;
                     }
                 } else {
                     
