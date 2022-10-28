@@ -11,6 +11,8 @@
 #include <stack>
 #include <iostream>
 
+extern bool intersectedButNotTraversed;
+
 // Helper method for calcualating the new bounding volume based on prims and the ids of prims to calculate for
 AxisAlignedBox calculateAABB(std::vector<Prim>& prims, std::vector<int>& prim_ids) 
 {
@@ -189,7 +191,7 @@ void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
 }
 
 
-bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Features& features, std::stack<BVHNode> stack,bool hit, float &absoluteT) const
+bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Features& features, std::stack<BVHNode> stack, bool hit, float& absoluteT, glm::uvec3 finalTriangle, Mesh finalMesh) const
 {
     Ray infRay;
     infRay.t = std::numeric_limits<float>::max();
@@ -213,8 +215,11 @@ bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Featur
             if (intersectRayWithShape(node.box, infRay)) {
                 if (infRay.t >= absoluteT) {
                     infRay.t = infT;
-                    drawAABB(node.box, DrawMode::Wireframe, glm::vec3(0.5f, 0.0f, 0.7f), 1.0f); // purple
-                    return traversal(hitInfo, ray, features, stack, hit, absoluteT);
+                    if (intersectedButNotTraversed) {
+                        drawAABB(node.box, DrawMode::Wireframe, glm::vec3(0.5f, 0.0f, 0.7f), 1.0f); // purple 
+                    }
+                    
+                    return traversal(hitInfo, ray, features, stack, hit, absoluteT, finalTriangle, finalMesh);
                 } else {
                     drawAABB(node.box, DrawMode::Wireframe, glm::vec3(0.0f, 0.7f, 0.0f), 1.0f); // green
                     infRay.t = infT;
@@ -225,6 +230,9 @@ bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Featur
         }
         
     } else {
+        if (hit) {
+            drawTriangle(finalMesh.vertices[finalTriangle.x], finalMesh.vertices[finalTriangle.y], finalMesh.vertices[finalTriangle.z]);
+        }
         return hit; // If stack is empty, return whether or not ray hit a triangle
     }
     
@@ -247,6 +255,9 @@ bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Featur
                 if (ray.t < absoluteT) {
                     absoluteT = ray.t;
                 }
+                finalTriangle = triangle;
+                finalMesh = mesh;
+            
                 
                 if (features.enableTextureMapping) {
                     if (mesh.material.kdTexture != nullptr) {
@@ -283,7 +294,7 @@ bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Featur
             i += 2; // Go to next pair
         }
                
-      return traversal(hitInfo, ray, features, stack, hit, absoluteT); // Recursively call method
+        return traversal(hitInfo, ray, features, stack, hit, absoluteT, finalTriangle, finalMesh); // Recursively call method
     } else // If internal
     {
         int left = node.ids[0];
@@ -292,7 +303,7 @@ bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Featur
         BVHNode rightNode = nodes[right];
         bool intersectsLeft = false;
         bool intersectsRight = false;
-        float leftT ; // Used to decide which node to push on stack first; node with closes t gets pushed on stack first
+        float leftT ; // Used to decide which node to push on stack first; node with closest t gets pushed on stack first
         float rightT;
         
         if (intersectRayWithShape(leftNode.box, infRay)) { // If left box is intersected, add to stack
@@ -331,7 +342,7 @@ bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Featur
             }
         }
         
-        return traversal(hitInfo, ray, features, stack, hit, absoluteT); // Recusively call method
+        return traversal(hitInfo, ray, features, stack, hit, absoluteT, finalTriangle, finalMesh);// Recusively call method
     }
 } 
 
@@ -463,7 +474,10 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
         stack.push(root);
         bool hit = false;
         float absoluteT = std::numeric_limits<float>::max();
-        return traversal(hitInfo, ray, features, stack, hit, absoluteT);
+        glm::uvec3 finalTriangle = {0,0,0};
+        Mesh finalMesh;
+        return traversal(hitInfo, ray, features, stack, hit, absoluteT, finalTriangle, finalMesh);
+
 
     }
 }

@@ -36,6 +36,7 @@ enum class ViewMode {
 };
 
 int debugBVHLeafId = 0;
+bool intersectedButNotTraversed = false;
 
 static void setOpenGLMatrices(const Trackball& camera);
 static void drawLightsOpenGL(const Scene& scene, const Trackball& camera, int selectedLight);
@@ -72,6 +73,7 @@ int main(int argc, char** argv)
 
         bool debugBVHLevel { false };
         bool debugBVHLeaf { false };
+        bool debugTraversal { false };
         ViewMode viewMode { ViewMode::Rasterization };
 
         window.registerKeyCallback([&](int key, int /* scancode */, int action, int /* mods */) {
@@ -200,6 +202,15 @@ int main(int argc, char** argv)
                 if (debugBVHLeaf)
                     ImGui::SliderInt("BVH Leaf", &bvhDebugLeaf, 1, bvh.numLeaves());
                 //ImGui::SliderInt("BVH Max Level", &bvh_max_level, 1, 24);
+                ImGui::Checkbox("Intersected but not traversed", &debugTraversal);
+                if (debugTraversal) {
+                    intersectedButNotTraversed = true;
+                } else {
+                    intersectedButNotTraversed = false;
+                }
+                    
+                
+                    
             }
 
             ImGui::SliderInt("Segment samples", &samplesPerUnit, 2, 500);
