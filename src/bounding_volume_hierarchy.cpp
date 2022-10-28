@@ -209,16 +209,21 @@ bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Featur
         } else {
             infRay.t = infT;
         }
-        if (intersectRayWithShape(node.box, infRay)) {
-            if (infRay.t >= absoluteT) {
-                infRay.t = infT;
-                drawAABB(node.box, DrawMode::Wireframe, glm::vec3(0.5f, 0.0f, 0.7f), 1.0f); // purple
-                return traversal(hitInfo, ray, features, stack, hit, absoluteT);
-            } else {
-                drawAABB(node.box, DrawMode::Wireframe, glm::vec3(0.0f, 0.7f, 0.0f), 1.0f); // green
-                infRay.t = infT;
+        if (!features.enableRecursive) {
+            if (intersectRayWithShape(node.box, infRay)) {
+                if (infRay.t >= absoluteT) {
+                    infRay.t = infT;
+                    drawAABB(node.box, DrawMode::Wireframe, glm::vec3(0.5f, 0.0f, 0.7f), 1.0f); // purple
+                    return traversal(hitInfo, ray, features, stack, hit, absoluteT);
+                } else {
+                    drawAABB(node.box, DrawMode::Wireframe, glm::vec3(0.0f, 0.7f, 0.0f), 1.0f); // green
+                    infRay.t = infT;
+                }
             }
+        } else {
+            drawAABB(node.box, DrawMode::Wireframe, glm::vec3(0.0f, 0.7f, 0.0f), 1.0f); // green
         }
+        
     } else {
         return hit; // If stack is empty, return whether or not ray hit a triangle
     }
