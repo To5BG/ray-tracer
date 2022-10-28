@@ -23,13 +23,18 @@ bool pointInTriangle(const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& 
     // Check if point lies on plane
     if (!isZero(glm::dot(n, p - v0)))
         return false;
-    glm::vec3 a = glm::cross(p - v2, p - v0);
-    glm::vec3 b = glm::cross(p - v1, p - v2);
-    glm::vec3 c = glm::cross(p - v0, p - v1);
+    float totalArea = 1.0f / glm::length(glm::cross(v0 - v2, v1 - v2));
+    float alpha = glm::length(glm::cross(p - v2, v1 - v2)) * totalArea;
+    float beta = glm::length(glm::cross(p - v2, v0 - v2)) * totalArea;
+    float gamma = glm::length(glm::cross(p - v1, v0 - v1)) * totalArea;
+    if (alpha < 0 || beta < 0 || alpha + beta > 1.0 || alpha + gamma > 1.0 || beta + gamma > 1.0)
+        return false;
+    return true;
+    //glm::vec3 a = glm::cross(p - v2, p - v0);
+    //glm::vec3 b = glm::cross(p - v1, p - v2);
+    //glm::vec3 c = glm::cross(p - v0, p - v1);
     // Check if all three cross-products point in the same direction
-    return glm::dot(a, b) >= 0 && 
-        glm::dot(b, c) >= 0 && 
-        glm::dot(a, c) >= 0;
+    // return glm::dot(a, b) >= 0 && glm::dot(a, c) >= 0;
 }
 
 bool intersectRayWithPlane(const Plane& plane, Ray& ray)
@@ -71,8 +76,6 @@ bool intersectRayWithTriangle(const glm::vec3& v0, const glm::vec3& v1, const gl
         glm::vec3 point = ray.origin + ray.direction * ray.t;
         hitInfo.barycentricCoord = computeBarycentricCoord(v0, v1, v2, point);
     }
-
-    
     return pit;
 }
 
@@ -105,7 +108,7 @@ bool intersectRayWithShape(const Sphere& sphere, Ray& ray, HitInfo& hitInfo)
 bool intersectRayWithShape(const AxisAlignedBox& box, Ray& ray)
 {
     // slight optimization by applying divisions once
-    glm::vec3 invDir = { 1 / ray.direction.x, 1 / ray.direction.y, 1 / ray.direction.z };
+    glm::vec3 invDir = { 1.0f / ray.direction.x, 1.0f / ray.direction.y, 1.0f / ray.direction.z };
     // Store all Ts, even idx -> min, odd idx -> max
     std::array<float, 6> ts = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
     // For each dimension (i) -> set min and max to either float.min and float.max 
@@ -113,7 +116,7 @@ bool intersectRayWithShape(const AxisAlignedBox& box, Ray& ray)
     for (int i = 0; i < 3; i++) {
         bool dir = ray.direction[i] > 0;
         //Min
-        ts[2 * i] = isZero(ray.direction[i]) ? std::numeric_limits<float>::min() 
+        ts[2 * i] = isZero(ray.direction[i]) ? -std::numeric_limits<float>::max() 
             : ((dir ? box.lower[i] : box.upper[i]) - ray.origin[i]) * invDir[i];
         //Max
         ts[2 * i + 1] = isZero(ray.direction[i]) ? std::numeric_limits<float>::max()
@@ -126,6 +129,39 @@ bool intersectRayWithShape(const AxisAlignedBox& box, Ray& ray)
     if (t_in > t_out || t_out <= 0 || isZero(t_in))
         return false;
     // Check if origin inside of AABB
-    ray.t = t_in < 0 ? t_out : t_in;
-    return true;
+    float newT = t_in < 0 ? t_out : t_in;
+    // Check if t is smaller than oldT
+    bool valid = newT < ray.t;
+    ray.t = valid ? newT : ray.t;
+    return valid;
+}
+
+bool intersectAABB(const AxisAlignedBox& box, Ray& ray)
+{
+    float txmin = (box.lower.x - ray.origin.x) / ray.direction.x;
+    float txmax = (box.upper.x - ray.origin.x) / ray.direction.x;
+    float tymin = (box.lower.y - ray.origin.y) / ray.direction.y;
+    float tymax = (box.upper.y - ray.origin.y) / ray.direction.y;
+    float tzmin = (box.lower.z - ray.origin.z) / ray.direction.z;
+    float tzmax = (box.upper.z - ray.origin.z) / ray.direction.z;
+    float tinx = std::min(txmin, txmax);
+    float toutx = std::max(txmin, txmax);
+    float tiny = std::min(tymin, tymax);
+    float touty = std::max(tymin, tymax);
+    float tinz = std::min(tzmin, tzmax);
+    float toutz = std::max(tzmin, tzmax);
+    float tin = std::max(tinx, std::max(tiny, tinz));
+    float tout = std::min(toutx, std::min(touty, toutz));
+    if (tin < 0) {
+        if (tout < 0) {
+            return true;
+        } else { 
+            return true;
+        }
+    }
+    if (tin > tout || tout < 0) {
+        return false;
+    } else {
+       return true;
+    }
 }
