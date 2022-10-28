@@ -14,3 +14,5 @@ bool intersectRayWithTriangle(const glm::vec3& v0, const glm::vec3& v1, const gl
 bool intersectRayWithShape(const Sphere& sphere, Ray& ray, HitInfo& hitInfo);
 
 bool intersectRayWithShape(const AxisAlignedBox& box, Ray& ray);
+
+bool intersectAABB(const AxisAlignedBox& box, Ray& ray);

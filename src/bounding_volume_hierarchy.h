@@ -3,6 +3,7 @@
 #include <array>
 #include <framework/ray.h>
 #include <vector>
+#include <stack>
 
 // Forward declaration.
 struct Scene;
@@ -39,6 +40,9 @@ struct Prim {
 // Helper method for calcualating the new bounding volume based on prims and the ids of prims to calculate for
 AxisAlignedBox calculateAABB(std::vector<Prim>& prims, std::vector<int>& prim_ids);
 
+
+
+
 class BoundingVolumeHierarchy {
 public:
     // Constructor. Receives the scene and builds the bounding volume hierarchy.
@@ -68,6 +72,9 @@ public:
     // is on the correct side of the origin (the new t >= 0).
     bool intersect(Ray& ray, HitInfo& hitInfo, const Features& features) const;
 
+    // Helper method that facilitates the recursive traversal of the BVH
+    bool traversal(HitInfo& hitInfo, Ray& ray, const Features& features, std::stack<BVHNode> stack,bool hit, float &absoluteT,
+        glm::uvec3 finalTriangle, Mesh finalMesh) const;
 
 private:
     int m_numLevels;
