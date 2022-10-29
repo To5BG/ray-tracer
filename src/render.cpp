@@ -12,11 +12,23 @@
 glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, int rayDepth)
 {
     HitInfo hitInfo;
-    
+    float t = ray.t;
    
     if (bvh.intersect(ray, hitInfo, features)) {
 
         glm::vec3 Lo = computeLightContribution(scene, bvh, features, ray, hitInfo);
+
+        if (features.extra.enableTransparency) {
+            drawRay(ray, Lo);
+            if (hitInfo.material.transparency != 1.0) {
+                Ray newRay = {};
+                newRay.direction = ray.direction;
+                newRay.origin = (ray.t+0.000001f) * ray.direction + ray.origin;
+                newRay.t = std::numeric_limits<float>::max();
+                return hitInfo.material.transparency * Lo + (1.0f - hitInfo.material.transparency) * getFinalColor(scene, bvh, newRay, features, rayDepth);
+               
+            } 
+        }
 
         if (features.enableRecursive) {
             

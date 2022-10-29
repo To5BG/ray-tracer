@@ -28,8 +28,7 @@ AxisAlignedBox calculateAABB(std::vector<Prim>& prims, std::vector<int>& prim_id
     return { min, max };
 }
 
-BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
-    : m_pScene(pScene)
+BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene): m_pScene(pScene)
 {
     // Start clock for benchmarking
     using clock = std::chrono::high_resolution_clock;
