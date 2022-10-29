@@ -212,7 +212,7 @@ bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Featur
         } else {
             infRay.t = infT;
         }
-        if (!features.enableRecursive) {
+        if (!features.enableRecursive && !features.extra.enableTransparency) {
             if (intersectRayWithShape(node.box, infRay)) {
                 if (infRay.t >= absoluteT) {
                     infRay.t = infT;
