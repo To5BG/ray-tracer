@@ -304,7 +304,23 @@ bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Featur
                     }
                 }
             }
-            
+            if (features.enableNormalInterp && foundIntersection) {
+                glm::vec3 point = ray.origin + ray.direction * ray.t;
+                float length = 0.5f;
+
+                // draw the rays of each vertex of the triangle
+                drawRay(Ray { v0Debug.position, v0Debug.normal, length });
+                drawRay(Ray { v1Debug.position, v1Debug.normal, length });
+                drawRay(Ray { v2Debug.position, v2Debug.normal, length });
+
+                // get the interpolated normal
+                glm::vec3 color = glm::vec3 { 0.0f, 1.0f, 0.0f };
+                glm::vec3 barycentric = computeBarycentricCoord(v0Debug.position, v1Debug.position, v2Debug.position, point);
+                glm::vec3 interpolatedNormal = interpolateNormal(v0Debug.normal, v1Debug.normal, v2Debug.normal, barycentric);
+                hitInfo.normal = interpolatedNormal;
+                // draw the interpolated ray
+                drawRay(Ray { point, interpolatedNormal, length }, color);
+            }
             i += 2; // Go to next pair
         }
                
