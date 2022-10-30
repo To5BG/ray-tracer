@@ -217,7 +217,7 @@ int main(int argc, char** argv)
             ImGui::SliderInt("Parallelogram samples", &samplesPerUnitParallel, 2, 100);
             ImGui::SliderFloat("Bloom threshold", &threshold, 0.0f, 1.0f);
             ImGui::SliderInt("Bloom size", &bloomsize, 0, 50);
-
+            ImGui::Checkbox("Bloom visual debug", &debugBloom);
             ImGui::Spacing();
             ImGui::Separator();
             ImGui::Text("Lights");
