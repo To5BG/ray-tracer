@@ -74,6 +74,7 @@ int main(int argc, char** argv)
         int bvhDebugMaxLevel = extr_max_level;
         int bvhSahBinCount = extr_sah_bins;
 
+        bool debugSAH = extr_debugSAH;
         bool debugBVHLevel { false };
         bool debugBVHLeaf { false };
         bool debugBVHMaxLevel { false };
@@ -213,6 +214,7 @@ int main(int argc, char** argv)
                 if (debugBVHMaxLevel)
                     ImGui::SliderInt("BVH Max Level", &bvhDebugMaxLevel, 1, 32);
 
+                ImGui::Checkbox("BVH SAH Show savings", &debugSAH);
                 ImGui::Checkbox("Intersected but not traversed", &debugTraversal);
                 intersectedButNotTraversed = debugTraversal;
             }
@@ -355,7 +357,7 @@ int main(int argc, char** argv)
                     config.features.extra.enableBvhSahBinning = enabledSAHBinning;
                     bvh = BvhInterface { &scene, config.features };
                 }
-                if (debugBVHLevel || debugBVHLeaf || debugBVHMaxLevel) {
+                if (debugBVHLevel || debugBVHLeaf || debugBVHMaxLevel || debugSAH) {
                     glPushAttrib(GL_ALL_ATTRIB_BITS);
                     setOpenGLMatrices(camera);
                     glDisable(GL_LIGHTING);
@@ -367,6 +369,7 @@ int main(int argc, char** argv)
                     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
                     enableDebugDraw = true;
                     if (debugBVHLevel)
+                        extr_debugSAH = debugSAH;
                         bvh.debugDrawLevel(bvhDebugLevel);
                     if (debugBVHLeaf)
                         bvh.debugDrawLeaf(bvhDebugLeaf);

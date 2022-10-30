@@ -14,7 +14,8 @@
 extern bool intersectedButNotTraversed;
 
 int extr_max_level = 32;
-int extr_sah_bins = 128;
+int extr_sah_bins = 64;
+bool extr_debugSAH = false;
 
 // Helper method for calculating the new bounding volume based on prims and the ids of prims to calculate for
 AxisAlignedBox calculateAABB(std::vector<Prim>& prims, std::vector<int>& prim_ids, int start = 0, int end = -1) 
@@ -48,6 +49,8 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene, const Features& 
     this->m_numLeaves = 0;
     this->m_numLevels = 0;
     std::vector<BVHNode> nodes;
+    // Save bool for visual debug
+    this->feat = features;
 
     // Create prim vector -> store for each primitive ->
     // triangle: *opt{vertices}, min_vector, max_vector, centroid, *opt{indexes of vertices}, index of triangle, index of mesh
@@ -82,11 +85,11 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene, const Features& 
     std::iota(i.begin(), i.end(), 0);
 
     //Recursive
-    ConstructorHelper(prims, i, nodes, 0, -1, 0, features.extra.enableBvhSahBinning);
+    ConstructorHelper(prims, i, nodes, 0, -1, 0, this->feat.extra.enableBvhSahBinning);
     this->nodes = nodes;
     const auto end = clock::now();
     // check if SAH or regular BVH was generated
-    if (features.extra.enableBvhSahBinning) {
+    if (this->feat.extra.enableBvhSahBinning) {
         std::cout << "Time to create BVH with SAH and ";
         // if enough primitives to bin, consider that
         if (extr_sah_bins < prims.size())
@@ -119,6 +122,7 @@ void BoundingVolumeHierarchy::ConstructorHelper(std::vector<Prim>& prims, std::v
         });
         this->m_numLeaves++;
         nodes.push_back(current);
+        // Store child idx to parent
         if (parentIdx != -1) 
             nodes[parentIdx].ids.push_back(idx);
     // Handle internal node
@@ -192,7 +196,7 @@ void BoundingVolumeHierarchy::ConstructorHelper(std::vector<Prim>& prims, std::v
             // Take median as split point
             splitPoint = prim_ids.size() / 2;
         }
-
+        // Store child idx to parent
         nodes.push_back(current);
         if(parentIdx != -1) 
             nodes[parentIdx].ids.push_back(idx);
@@ -232,6 +236,16 @@ void BoundingVolumeHierarchy::debugDrawLevel(int level)
     //drawShape(aabb, DrawMode::Filled, glm::vec3(0.0f, 1.0f, 0.0f), 0.2f);
 
     // Draw the AABB as a (white) wireframe box.
+    if (extr_debugSAH) 
+    {
+        Features newFeat = feat;
+        newFeat.extra.enableBvhSahBinning = false;
+        BoundingVolumeHierarchy bvh_two = { m_pScene, newFeat };
+        std::for_each(bvh_two.nodes.begin(), bvh_two.nodes.end(), [&](BVHNode n) {
+            if (n.level == level)
+                drawAABB(n.box, DrawMode::Wireframe, glm::vec3(1.0f, 0.0f, 0.0f), 0.5f);
+        });
+    }
     std::for_each(this->nodes.begin(), this->nodes.end(), [&](BVHNode n) {
         if (n.level == level)
             drawAABB(n.box, DrawMode::Wireframe, glm::vec3(1.0f, 1.0f, 1.0f), 1.0f);

@@ -10,6 +10,7 @@ struct Scene;
 
 extern int extr_max_level;
 extern int extr_sah_bins;
+extern bool extr_debugSAH;
 
 struct BVHNode {
     bool isLeafNode;
@@ -83,4 +84,5 @@ private:
     Scene* m_pScene;
     std::vector<BVHNode> nodes;
     int max_level;
+    Features feat;
 };
