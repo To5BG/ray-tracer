@@ -154,7 +154,7 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                 // distance between two samples
                 sampleDistanceSegment = ((segmentLight.endpoint1 - segmentLight.endpoint0) * sampleCountRec);
                 // sets the seed so that every time we run the for loop we get the same result for rand() (otherwise there is noise)
-                srand(1);
+                if (enableDebugDraw) srand(1);
                 // create the samples
                 float sampleCount = 1.0f / sampleCountRec;
                 for (int i = 0; i < sampleCount; i++) {
@@ -188,7 +188,7 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                 dirISamplesRec = 1.0f / std::floor(std::fmax(samplesPerUnitParallel * glm::length(parallelogramLight.edge01), 1.0f));
                 dirJSamplesRec = 1.0f / std::floor(std::fmax(samplesPerUnitParallel * glm::length(parallelogramLight.edge02), 1.0f));
                 // sets the seed so that every time we run the for loop we get the same result for rand() (otherwise there is noise)
-                srand(1);
+                if (enableDebugDraw) srand(1);
                 // iterate over both axis of the light
                 float dirISampleCount = 1.0f / dirISamplesRec;
                 float dirJSampleCount = 1.0f / dirJSamplesRec;

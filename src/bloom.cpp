@@ -18,11 +18,12 @@ glm::vec3 filterPixel(int index, int width, int height)
         for (int j = 0; j < filtersize; j++) {
             int heightpos = (j - bloomsize)* height; 
             int widthpos = (i - bloomsize);
-            // TODO check if the filter is not outside the range of the image, else consider the pixel black. This doesn't work yet
-            if (heightpos >= 0 && heightpos <= height * width &&  widthpos >= 0 && widthpos <= width)
-                avg += filterPixels[index + widthpos + heightpos] / (float)(pow(filtersize, 2));
-            else
-                avg += glm::vec3 { 0 };
+            // check if the height range is correct
+            if (index + widthpos + heightpos >= 0 && index + width + heightpos <= width*height) {
+                // check if the width range is correct
+                if (index%height + widthpos >= 0 && index%height + widthpos <= width)
+                    avg += filterPixels[index + widthpos + heightpos] / (float)(pow(filtersize, 2));
+            }
         }
     }
     return avg;
@@ -40,7 +41,7 @@ void addBloom(std::vector<glm::vec3>& pixels, int width, int height) {
         if (color.x > threshold || color.y > threshold || color.z > threshold) {
             filterPixels.push_back(color);
         } else {
-            filterPixels.push_back(glm::vec3{0});
+            filterPixels.push_back(color);
         }
 
   	}
