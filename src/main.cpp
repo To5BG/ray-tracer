@@ -2,6 +2,7 @@
 #include "draw.h"
 #include "light.h"
 #include "render.h"
+#include "bloom.h"
 #include "screen.h"
 // Suppress warnings in third-party code.
 #include <framework/disable_all_warnings.h>
@@ -215,6 +216,7 @@ int main(int argc, char** argv)
             ImGui::SliderInt("Segment samples", &samplesPerUnit, 2, 500);
             ImGui::SliderInt("Parallelogram samples", &samplesPerUnitParallel, 2, 100);
             ImGui::SliderFloat("Bloom threshold", &threshold, 0.0f, 1.0f);
+            ImGui::SliderInt("Bloom size", &bloomsize, 0, 50);
 
             ImGui::Spacing();
             ImGui::Separator();

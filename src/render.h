@@ -6,8 +6,6 @@ DISABLE_WARNINGS_PUSH()
 DISABLE_WARNINGS_POP()
 #include <framework/ray.h>
 
-extern float threshold;
-
 // Forward declarations.
 struct Scene;
 class Screen;
