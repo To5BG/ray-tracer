@@ -9,7 +9,7 @@
 struct Scene;
 
 extern int extr_max_level;
-extern float extr_sah_bins;
+extern int extr_sah_bins;
 
 struct BVHNode {
     bool isLeafNode;
@@ -42,7 +42,7 @@ struct Prim {
 AxisAlignedBox calculateAABB(std::vector<Prim>& prims, std::vector<int>& prim_ids, int start, int end);
 
 // Helper method for calculating surface area of an AABB, used for the surface-area heuristic
-float volume(AxisAlignedBox& a);
+float surfaceArea(AxisAlignedBox& a);
 
 class BoundingVolumeHierarchy {
 public:

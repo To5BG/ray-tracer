@@ -14,7 +14,7 @@
 extern bool intersectedButNotTraversed;
 
 int extr_max_level = 32;
-float extr_sah_bins = 50;
+int extr_sah_bins = 128;
 
 // Helper method for calculating the new bounding volume based on prims and the ids of prims to calculate for
 AxisAlignedBox calculateAABB(std::vector<Prim>& prims, std::vector<int>& prim_ids, int start = 0, int end = -1) 
@@ -85,9 +85,16 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene, const Features& 
     ConstructorHelper(prims, i, nodes, 0, -1, 0, features.extra.enableBvhSahBinning);
     this->nodes = nodes;
     const auto end = clock::now();
+    // check if SAH or regular BVH was generated
     if (features.extra.enableBvhSahBinning) {
-        std::cout << "Time to create BVH with SAH and " << std::setprecision(4) << extr_sah_bins << "-way binning: " 
-            << std::setprecision(-1) << std::chrono::duration<float, std::milli>(end - start).count() << " milliseconds " << std::endl;
+        std::cout << "Time to create BVH with SAH and ";
+        // if enough primitives to bin, consider that
+        if (extr_sah_bins < prims.size())
+            std::cout << std::setprecision(4) << extr_sah_bins << "-way binning: ";
+        // otherwise sah with every centroid checked
+        else
+            std::cout << "no binning: ";
+        std::cout << std::setprecision(-1) << std::chrono::duration<float, std::milli>(end - start).count() << " milliseconds " << std::endl;
     } else
         std::cout << "Time to create basic BVH: " << std::chrono::duration<float, std::milli>(end - start).count() << " milliseconds " << std::endl;
 }

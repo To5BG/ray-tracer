@@ -72,7 +72,7 @@ int main(int argc, char** argv)
         int bvhDebugLevel = 0;
         int bvhDebugLeaf = 0;
         int bvhDebugMaxLevel = extr_max_level;
-        float bvhSahBinCount = extr_sah_bins;
+        int bvhSahBinCount = extr_sah_bins;
 
         bool debugBVHLevel { false };
         bool debugBVHLeaf { false };
@@ -155,7 +155,7 @@ int main(int argc, char** argv)
                 ImGui::Checkbox("Environment mapping", &config.features.extra.enableEnvironmentMapping);
                 ImGui::Checkbox("BVH SAH binning", &enabledSAHBinning);
                 if (enabledSAHBinning)
-                    ImGui::SliderFloat("BVH Primitive count per bin", &bvhSahBinCount, 1, 50);
+                    ImGui::SliderInt("BVH Bin Count", &bvhSahBinCount, 3, 4096);
                 ImGui::Checkbox("Bloom effect", &config.features.extra.enableBloomEffect);
                 ImGui::Checkbox("Texture filtering(bilinear interpolation)", &config.features.extra.enableBilinearTextureFiltering);
                 ImGui::Checkbox("Texture filtering(mipmapping)", &config.features.extra.enableMipmapTextureFiltering);
