@@ -8,6 +8,7 @@
 #endif
 #include <iostream>
 
+float threshold = 0.7f;
 
 glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, int rayDepth)
 {
@@ -66,7 +67,17 @@ void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInte
                 float(y) / float(windowResolution.y) * 2.0f - 1.0f
             };
             const Ray cameraRay = camera.generateRay(normalizedPixelPos);
-            screen.setPixel(x, y, getFinalColor(scene, bvh, cameraRay, features));
+            if (features.extra.enableBloomEffect) {
+                glm::vec3 color = getFinalColor(scene, bvh, cameraRay, features);
+                if (color.x > threshold || color.y > threshold || color.z > threshold) { 
+                    screen.setPixel(x, y, color);
+                  //  std::cout << color.x << " " << color.y << " " << color.z << std::endl;
+                } else {
+                    screen.setPixel(x, y, glm::vec3 { 0 });
+                }
+            } else {
+                screen.setPixel(x, y, getFinalColor(scene, bvh, cameraRay, features));
+            }
         }
     }
 }

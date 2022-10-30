@@ -214,6 +214,7 @@ int main(int argc, char** argv)
             }
             ImGui::SliderInt("Segment samples", &samplesPerUnit, 2, 500);
             ImGui::SliderInt("Parallelogram samples", &samplesPerUnitParallel, 2, 100);
+            ImGui::SliderFloat("Bloom threshold", &threshold, 0.0f, 1.0f);
 
             ImGui::Spacing();
             ImGui::Separator();
