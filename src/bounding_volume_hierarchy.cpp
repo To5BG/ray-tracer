@@ -29,6 +29,7 @@ AxisAlignedBox calculateAABB(std::vector<Prim>& prims, std::vector<int>& prim_id
 }
 
 BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
+BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene, const Features& features)
     : m_pScene(pScene)
 {
     // Start clock for benchmarking
@@ -73,7 +74,7 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     std::iota(i.begin(), i.end(), 0);
 
     //Recursive
-    ConstructorHelper(prims, i, nodes, 0, -1, 0);
+    ConstructorHelper(prims, i, nodes, 0, -1, 0, features.extra.enableBvhSahBinning);
     this->nodes = nodes;
     const auto end = clock::now();
     std::cout << "Time to create BVH: " << std::chrono::duration<float, std::milli>(end - start).count() << " milliseconds" << std::endl;
@@ -81,7 +82,7 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
 
 // Constructor helper for recursion
 void BoundingVolumeHierarchy::ConstructorHelper(std::vector<Prim>& prims, std::vector<int> prim_ids, 
-    std::vector<BVHNode>& nodes, int currLevel, int parentIdx, int idx)
+    std::vector<BVHNode>& nodes, int currLevel, int parentIdx, int idx, bool enabledSAHBinning)
 {
     // Update number of levels
     this->m_numLevels = std::max(this->m_numLevels, currLevel + 1);

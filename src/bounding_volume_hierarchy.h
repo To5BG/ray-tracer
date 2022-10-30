@@ -46,11 +46,11 @@ AxisAlignedBox calculateAABB(std::vector<Prim>& prims, std::vector<int>& prim_id
 class BoundingVolumeHierarchy {
 public:
     // Constructor. Receives the scene and builds the bounding volume hierarchy.
-    BoundingVolumeHierarchy(Scene* pScene);
+    BoundingVolumeHierarchy(Scene* pScene, const Features& features);
 
     // Constructor helper for recursion
     void ConstructorHelper(std::vector<Prim>& prims, std::vector<int> prim_ids, std::vector<BVHNode>& nodes, 
-        int currLevel, int parentIdx, int idx);
+        int currLevel, int parentIdx, int idx, bool enableSAHBinning);
 
     // Return how many levels there are in the tree that you have constructed.
     [[nodiscard]] int numLevels() const;
