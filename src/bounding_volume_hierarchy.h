@@ -41,7 +41,7 @@ struct Prim {
 // Helper method for calcualating the new bounding volume based on prims and the ids of prims to calculate for
 AxisAlignedBox calculateAABB(std::vector<Prim>& prims, std::vector<int>& prim_ids, int start, int end);
 
-// Helper method for calculating volume of an AABB, used for the surface-area heuristic
+// Helper method for calculating surface area of an AABB, used for the surface-area heuristic
 float volume(AxisAlignedBox& a);
 
 class BoundingVolumeHierarchy {

@@ -29,10 +29,12 @@ AxisAlignedBox calculateAABB(std::vector<Prim>& prims, std::vector<int>& prim_id
     return { min, max };
 }
 
-// Helper method for calculating volume of an AABB, used for the surface-area heuristic
-float volume(AxisAlignedBox& a)
+// Helper method for calculating surface area of an AABB, used for the surface-area heuristic
+float surfaceArea(AxisAlignedBox& a)
 {
-    return glm::dot(a.upper - a.lower, glm::vec3 { 1.0f });
+    glm::vec3 b = a.upper - a.lower;
+    b = { b.y, b.z, b.x };
+    return glm::dot(a.upper - a.lower, b);
 }
 
 BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene, const Features& features)
@@ -85,7 +87,7 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene, const Features& 
     const auto end = clock::now();
     if (features.extra.enableBvhSahBinning) {
         std::cout << "Time to create BVH with SAH and " << std::setprecision(4) << extr_sah_bins << "-way binning: " 
-            << std::chrono::duration<float, std::milli>(end - start).count() << " milliseconds " << std::endl;
+            << std::setprecision(-1) << std::chrono::duration<float, std::milli>(end - start).count() << " milliseconds " << std::endl;
     } else
         std::cout << "Time to create basic BVH: " << std::chrono::duration<float, std::milli>(end - start).count() << " milliseconds " << std::endl;
 }
@@ -120,11 +122,11 @@ void BoundingVolumeHierarchy::ConstructorHelper(std::vector<Prim>& prims, std::v
         if (enabledSAHBinning) 
         {
             // Sort by all axes and find minimal SAH cost
-            // SAH cost defined as (volume(left) * prim_num(left) + volume(right) * prim_num(right)) / volume(full)
+            // SAH cost defined as (SA(left) * prim_num(left) + SA(right) * prim_num(right)) / SA(full)
             // Explanation given in the report for the above formula
             float minCost = std::numeric_limits<float>::max();
             // Micro-optimization by calculating current box volume only once
-            float currVolumeRec = 1.0f / volume(current.box);
+            float cur_surfaceAreaRec = 1.0f / surfaceArea(current.box);
             int axis = -1;
             for (int a = 0; a < 3; a++) 
             {
@@ -136,7 +138,7 @@ void BoundingVolumeHierarchy::ConstructorHelper(std::vector<Prim>& prims, std::v
                 for (int i = 1; i < prim_ids.size(); i++) {
                     AxisAlignedBox left = calculateAABB(prims, prim_ids, 0, i);
                     AxisAlignedBox right = calculateAABB(prims, prim_ids, i);
-                    float currCost = (volume(left) * i  + volume(right) * (prim_ids.size() - i)) * currVolumeRec;
+                    float currCost = (surfaceArea(left) * i + surfaceArea(right) * (prim_ids.size() - i)) * cur_surfaceAreaRec;
                     if (currCost < minCost) 
                     {
                         // Store min cost, index of split point, and best axis
