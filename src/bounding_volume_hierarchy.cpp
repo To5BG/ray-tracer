@@ -141,17 +141,42 @@ void BoundingVolumeHierarchy::ConstructorHelper(std::vector<Prim>& prims, std::v
                 std::sort(prim_ids.begin(), prim_ids.end(), [&](int i, int j) {
                     return prims[i].centr[a] < prims[j].centr[a];
                 });
-                // Find best split by the aforementioned SAH criteria
-                for (int i = 1; i < prim_ids.size(); i++) {
-                    AxisAlignedBox left = calculateAABB(prims, prim_ids, 0, i);
-                    AxisAlignedBox right = calculateAABB(prims, prim_ids, i);
-                    float currCost = (surfaceArea(left) * i + surfaceArea(right) * (prim_ids.size() - i)) * cur_surfaceAreaRec;
-                    if (currCost < minCost) 
+                // if more or bins than primitives or equal > check every centroid split
+                if (extr_sah_bins >= prim_ids.size()) {
+                    // Find best split by the aforementioned SAH criteria
+                    for (int i = 1; i < prim_ids.size(); i++) {
+                        AxisAlignedBox left = calculateAABB(prims, prim_ids, 0, i);
+                        AxisAlignedBox right = calculateAABB(prims, prim_ids, i);
+                        float currCost = (surfaceArea(left) * i + surfaceArea(right) * (prim_ids.size() - i)) * cur_surfaceAreaRec;
+                        if (currCost < minCost) {
+                            // Store min cost, index of split point, and best axis
+                            minCost = currCost;
+                            axis = a;
+                            splitPoint = i;
+                        }
+                    }
+                } else {
+                    // Get centroid range, then split on even bins
+                    float centroidrange = prims[prim_ids[prim_ids.size() - 1]].centr[a] - prims[prim_ids[0]].centr[a];
+                    // Precompute distance between two bin boundaries
+                    float dist = centroidrange / extr_sah_bins;
+                    // Start from first primitive, for each bin boundary increment to encapsulate all prim ids left of the boundary
+                    int countLeft = 1;
+                    for (int i = 0; i < extr_sah_bins; i++) 
                     {
-                        // Store min cost, index of split point, and best axis
-                        minCost = currCost;
-                        axis = a;
-                        splitPoint = i;
+                        float currSplit = prims[prim_ids[0]].centr[a] + i * dist; 
+                        // increment countLeft until prim with centroid proj larger than current bin boundary is found
+                        while (prims[prim_ids[countLeft]].centr[a] < currSplit)
+                            countLeft++;
+                        AxisAlignedBox left = calculateAABB(prims, prim_ids, 0, countLeft);
+                        AxisAlignedBox right = calculateAABB(prims, prim_ids, countLeft);
+                        float currCost = (surfaceArea(left) * countLeft + surfaceArea(right) * (prim_ids.size() - countLeft)) * cur_surfaceAreaRec;
+                        if (currCost < minCost) {
+                            // Store min cost, index of split point, and best axis
+                            minCost = currCost;
+                            axis = a;
+                            splitPoint = countLeft;
+                        }
                     }
                 }
             }
