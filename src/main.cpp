@@ -71,13 +71,14 @@ int main(int argc, char** argv)
 
         int bvhDebugLevel = 0;
         int bvhDebugLeaf = 0;
-        int bvhDebugMaxLevel = 24;
+        int bvhDebugMaxLevel = extr_max_level;
+        float bvhSahBinCount = extr_sah_bins;
 
         bool debugBVHLevel { false };
         bool debugBVHLeaf { false };
         bool debugBVHMaxLevel { false };
         bool debugTraversal { false };
-        bool enabledSAHBinning = false;
+        bool enabledSAHBinning = config.features.extra.enableBvhSahBinning;
 
         ViewMode viewMode { ViewMode::Rasterization };
 
@@ -153,6 +154,8 @@ int main(int argc, char** argv)
             if (ImGui::CollapsingHeader("Extra Features")) {
                 ImGui::Checkbox("Environment mapping", &config.features.extra.enableEnvironmentMapping);
                 ImGui::Checkbox("BVH SAH binning", &enabledSAHBinning);
+                if (enabledSAHBinning)
+                    ImGui::SliderFloat("BVH Primitive count per bin", &bvhSahBinCount, 1, 50);
                 ImGui::Checkbox("Bloom effect", &config.features.extra.enableBloomEffect);
                 ImGui::Checkbox("Texture filtering(bilinear interpolation)", &config.features.extra.enableBilinearTextureFiltering);
                 ImGui::Checkbox("Texture filtering(mipmapping)", &config.features.extra.enableMipmapTextureFiltering);
@@ -208,7 +211,7 @@ int main(int argc, char** argv)
                     ImGui::SliderInt("BVH Leaf", &bvhDebugLeaf, 1, bvh.numLeaves());
                 ImGui::Checkbox("Change BVH Max Level", &debugBVHMaxLevel);
                 if (debugBVHMaxLevel)
-                    ImGui::SliderInt("BVH Max Level", &bvhDebugMaxLevel, 1, 24);
+                    ImGui::SliderInt("BVH Max Level", &bvhDebugMaxLevel, 1, 32);
 
                 ImGui::Checkbox("Intersected but not traversed", &debugTraversal);
                 intersectedButNotTraversed = debugTraversal;
@@ -347,7 +350,8 @@ int main(int argc, char** argv)
 
                 drawLightsOpenGL(scene, camera, selectedLightIdx);
 
-                if (enabledSAHBinning != config.features.extra.enableBvhSahBinning) {
+                if (enabledSAHBinning != config.features.extra.enableBvhSahBinning || bvhSahBinCount != extr_sah_bins) {
+                    extr_sah_bins = bvhSahBinCount;
                     config.features.extra.enableBvhSahBinning = enabledSAHBinning;
                     bvh = BvhInterface { &scene, config.features };
                 }

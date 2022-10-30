@@ -9,6 +9,7 @@
 struct Scene;
 
 extern int extr_max_level;
+extern float extr_sah_bins;
 
 struct BVHNode {
     bool isLeafNode;
