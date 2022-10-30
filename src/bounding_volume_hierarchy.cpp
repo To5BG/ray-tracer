@@ -222,11 +222,11 @@ bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Featur
                             node = stack.top();
                             stack.pop();
                         } else {
-                            if (hit) {
+                           /* if (hit) {
                                 Mesh& mesh = m_pScene->meshes[finalMesh];
                                 glm::uvec3 t = mesh.triangles[finalTriangle];
                                 drawTriangle(mesh.vertices[t.x], mesh.vertices[t.y], mesh.vertices[t.z]);
-                            }
+                            }*/
                             return hit;
                         }
 
@@ -243,11 +243,11 @@ bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Featur
         
         
     } else {
-        if (hit) {
+        /*if (hit) {
             Mesh& mesh = m_pScene->meshes[finalMesh];
             glm::uvec3 t = mesh.triangles[finalTriangle];
             drawTriangle(mesh.vertices[t.x], mesh.vertices[t.y], mesh.vertices[t.z]);
-        }
+        }*/
         return hit; // If stack is empty, return whether or not ray hit a triangle
     }
     
@@ -270,8 +270,8 @@ bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Featur
                 if (ray.t < absoluteT) {
                     absoluteT = ray.t;
                 }
-                finalMesh = meshID;
-                finalTriangle = triangleID;
+                /*finalMesh = meshID;
+                finalTriangle = triangleID;*/
             
                 
                 if (features.enableTextureMapping) {
