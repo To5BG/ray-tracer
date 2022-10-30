@@ -77,6 +77,7 @@ int main(int argc, char** argv)
         bool debugBVHLeaf { false };
         bool debugBVHMaxLevel { false };
         bool debugTraversal { false };
+        bool enabledSAHBinning = false;
 
         ViewMode viewMode { ViewMode::Rasterization };
 
@@ -151,7 +152,7 @@ int main(int argc, char** argv)
 
             if (ImGui::CollapsingHeader("Extra Features")) {
                 ImGui::Checkbox("Environment mapping", &config.features.extra.enableEnvironmentMapping);
-                ImGui::Checkbox("BVH SAH binning", &config.features.extra.enableBvhSahBinning);
+                ImGui::Checkbox("BVH SAH binning", &enabledSAHBinning);
                 ImGui::Checkbox("Bloom effect", &config.features.extra.enableBloomEffect);
                 ImGui::Checkbox("Texture filtering(bilinear interpolation)", &config.features.extra.enableBilinearTextureFiltering);
                 ImGui::Checkbox("Texture filtering(mipmapping)", &config.features.extra.enableMipmapTextureFiltering);
@@ -346,6 +347,10 @@ int main(int argc, char** argv)
 
                 drawLightsOpenGL(scene, camera, selectedLightIdx);
 
+                if (enabledSAHBinning != config.features.extra.enableBvhSahBinning) {
+                    config.features.extra.enableBvhSahBinning = enabledSAHBinning;
+                    bvh = BvhInterface { &scene, config.features };
+                }
                 if (debugBVHLevel || debugBVHLeaf || debugBVHMaxLevel) {
                     glPushAttrib(GL_ALL_ATTRIB_BITS);
                     setOpenGLMatrices(camera);

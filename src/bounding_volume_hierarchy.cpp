@@ -15,29 +15,20 @@ extern bool intersectedButNotTraversed;
 
 int extr_max_level = 24;
 
-// Helper method for calcualating the new bounding volume based on prims and the ids of prims to calculate for
+// Helper method for calculating the new bounding volume based on prims and the ids of prims to calculate for
 AxisAlignedBox calculateAABB(std::vector<Prim>& prims, std::vector<int>& prim_ids, int start = 0, int end = -1) 
 {
     glm::vec3 min = glm::vec3 { std::numeric_limits<float>::max() };
     glm::vec3 max = glm::vec3 { -std::numeric_limits<float>::max() };
-    if (end == -1) 
-    {
-        std::for_each(prim_ids.begin() + start, prim_ids.end(), [&](int i) {
-            Prim p = prims[i];
-            min = { std::fmin(min.x, p.min.x), std::fmin(min.y, p.min.y), std::fmin(min.z, p.min.z) };
-            max = { std::fmax(max.x, p.max.x), std::fmax(max.y, p.max.y), std::fmax(max.z, p.max.z) };
-        });
-    } else {
-        for (int i = start; i < end; i++) 
-        {
-            Prim p = prims[prim_ids[i]];
-            min = { std::fmin(min.x, p.min.x), std::fmin(min.y, p.min.y), std::fmin(min.z, p.min.z) };
-            max = { std::fmax(max.x, p.max.x), std::fmax(max.y, p.max.y), std::fmax(max.z, p.max.z) };
-        }
+    for (int i = start; i < (end == -1 ? prim_ids.size() : end); i++) {
+        Prim p = prims[prim_ids[i]];
+        min = { std::fmin(min.x, p.min.x), std::fmin(min.y, p.min.y), std::fmin(min.z, p.min.z) };
+        max = { std::fmax(max.x, p.max.x), std::fmax(max.y, p.max.y), std::fmax(max.z, p.max.z) };
     }
     return { min, max };
 }
 
+// Helper method for calculating volume of an AABB, used for the surface-area heuristic
 float volume(AxisAlignedBox& a)
 {
     return glm::dot(a.upper - a.lower, glm::vec3 { 1.0f });
@@ -125,9 +116,10 @@ void BoundingVolumeHierarchy::ConstructorHelper(std::vector<Prim>& prims, std::v
         if (enabledSAHBinning) 
         {
             // Sort by all axes and find minimal SAH cost
-            // SAH cost defined as volume(left) * prim_num(left)/volume(full) + volume(right) * prim_num(right)/volume(full)
+            // SAH cost defined as (volume(left) * prim_num(left) + volume(right) * prim_num(right)) / volume(full)
             // Explanation given in the report for the above formula
             float minCost = std::numeric_limits<float>::max();
+            // Micro-optimization by calculating current box volume only once
             float currVolumeRec = 1.0f / volume(current.box);
             int axis = -1;
             for (int a = 0; a < 3; a++) 
@@ -143,21 +135,23 @@ void BoundingVolumeHierarchy::ConstructorHelper(std::vector<Prim>& prims, std::v
                     float currCost = (volume(left) * i  + volume(right) * (prim_ids.size() - i)) * currVolumeRec;
                     if (currCost < minCost) 
                     {
+                        // Store min cost, index of split point, and best axis
                         minCost = currCost;
                         axis = a;
                         splitPoint = i;
                     }
                 }
             }
-            // Sort by best axis
+            // Sort by best axis for further recursive calls
             std::sort(prim_ids.begin(), prim_ids.end(), [&](int i, int j) {
                 return prims[i].centr[axis] < prims[j].centr[axis];
             });
         } else {
-            // Sort by centroid/sphere center and split on median
+            // Sort by centroid/sphere center
             std::sort(prim_ids.begin(), prim_ids.end(), [&](int i, int j) {
                 return prims[i].centr[currLevel % 3] < prims[j].centr[currLevel % 3];
             });
+            // Take median as split point
             splitPoint = prim_ids.size() / 2;
         }
 
