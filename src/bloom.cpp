@@ -10,7 +10,7 @@ bool debugBloom = false;
 int gaussian = 1;
 float scale = 1.0f;
 
-// cr
+// create the gaussian filter
 std::vector<std::vector<float>> gaussianKernel(float sigma)
 {
     // standard deviation and size
@@ -100,7 +100,6 @@ void addBloom(std::vector<glm::vec3>& pixels, int width, int height) {
         } else {
             filterPixels.push_back(glm::vec3{0.0f});
         }
-
   	}
 
     // loop over each pixel again, and apply the boxfilter
