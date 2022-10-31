@@ -67,16 +67,19 @@ int main(int argc, char** argv)
         SceneType sceneType { SceneType::SingleTriangle };
         std::optional<Ray> optDebugRay;
         Scene scene = loadScenePrebuilt(sceneType, config.dataPath);
-        BvhInterface bvh { &scene };
+        BvhInterface bvh { &scene, config.features };
 
         int bvhDebugLevel = 0;
         int bvhDebugLeaf = 0;
-        int bvhDebugMaxLevel = 24;
+        int bvhDebugMaxLevel = extr_max_level;
+        int bvhSahBinCount = extr_sah_bins;
 
+        bool debugSAH = extr_debugSAH;
         bool debugBVHLevel { false };
         bool debugBVHLeaf { false };
         bool debugBVHMaxLevel { false };
         bool debugTraversal { false };
+        bool enabledSAHBinning = config.features.extra.enableBvhSahBinning;
 
         ViewMode viewMode { ViewMode::Rasterization };
 
@@ -125,7 +128,7 @@ int main(int argc, char** argv)
                     optDebugRay.reset();
                     scene = loadScenePrebuilt(sceneType, config.dataPath);
                     selectedLightIdx = scene.lights.empty() ? -1 : 0;
-                    bvh = BvhInterface(&scene);
+                    bvh = BvhInterface(&scene, config.features);
                     if (optDebugRay) {
                         HitInfo dummy {};
                         bvh.intersect(*optDebugRay, dummy, config.features);
@@ -151,7 +154,9 @@ int main(int argc, char** argv)
 
             if (ImGui::CollapsingHeader("Extra Features")) {
                 ImGui::Checkbox("Environment mapping", &config.features.extra.enableEnvironmentMapping);
-                ImGui::Checkbox("BVH SAH binning", &config.features.extra.enableBvhSahBinning);
+                ImGui::Checkbox("BVH SAH binning", &enabledSAHBinning);
+                if (enabledSAHBinning)
+                    ImGui::SliderInt("BVH Bin Count", &bvhSahBinCount, 3, 4096);
                 ImGui::Checkbox("Bloom effect", &config.features.extra.enableBloomEffect);
                 ImGui::Checkbox("Texture filtering(bilinear interpolation)", &config.features.extra.enableBilinearTextureFiltering);
                 ImGui::Checkbox("Texture filtering(mipmapping)", &config.features.extra.enableMipmapTextureFiltering);
@@ -207,8 +212,9 @@ int main(int argc, char** argv)
                     ImGui::SliderInt("BVH Leaf", &bvhDebugLeaf, 1, bvh.numLeaves());
                 ImGui::Checkbox("Change BVH Max Level", &debugBVHMaxLevel);
                 if (debugBVHMaxLevel)
-                    ImGui::SliderInt("BVH Max Level", &bvhDebugMaxLevel, 1, 24);
+                    ImGui::SliderInt("BVH Max Level", &bvhDebugMaxLevel, 1, 32);
 
+                ImGui::Checkbox("BVH SAH Show savings", &debugSAH);
                 ImGui::Checkbox("Intersected but not traversed", &debugTraversal);
                 intersectedButNotTraversed = debugTraversal;
             }
@@ -346,7 +352,12 @@ int main(int argc, char** argv)
 
                 drawLightsOpenGL(scene, camera, selectedLightIdx);
 
-                if (debugBVHLevel || debugBVHLeaf || debugBVHMaxLevel) {
+                if (enabledSAHBinning != config.features.extra.enableBvhSahBinning || bvhSahBinCount != extr_sah_bins) {
+                    extr_sah_bins = bvhSahBinCount;
+                    config.features.extra.enableBvhSahBinning = enabledSAHBinning;
+                    bvh = BvhInterface { &scene, config.features };
+                }
+                if (debugBVHLevel || debugBVHLeaf || debugBVHMaxLevel || debugSAH) {
                     glPushAttrib(GL_ALL_ATTRIB_BITS);
                     setOpenGLMatrices(camera);
                     glDisable(GL_LIGHTING);
@@ -357,14 +368,16 @@ int main(int argc, char** argv)
                     glEnable(GL_BLEND);
                     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
                     enableDebugDraw = true;
-                    if (debugBVHLevel)
+                    if (debugBVHLevel) {
+                        extr_debugSAH = enabledSAHBinning && debugSAH;
                         bvh.debugDrawLevel(bvhDebugLevel);
+                    }
                     if (debugBVHLeaf)
                         bvh.debugDrawLeaf(bvhDebugLeaf);
                     if (debugBVHMaxLevel && bvhDebugMaxLevel != extr_max_level) 
                     {
                         extr_max_level = bvhDebugMaxLevel;
-                        bvh = BvhInterface { &scene };
+                        bvh = BvhInterface { &scene, config.features };
                     }
                     enableDebugDraw = false;
                     glPopAttrib();
@@ -407,7 +420,7 @@ int main(int argc, char** argv)
                        }),
             config.scene);
 
-        BvhInterface bvh { &scene };
+        BvhInterface bvh { &scene, config.features };
 
         using clock = std::chrono::high_resolution_clock;
         // Create output directory if it does not exist.

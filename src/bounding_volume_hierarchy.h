@@ -9,6 +9,8 @@
 struct Scene;
 
 extern int extr_max_level;
+extern int extr_sah_bins;
+extern bool extr_debugSAH;
 
 struct BVHNode {
     bool isLeafNode;
@@ -38,19 +40,19 @@ struct Prim {
 };
 
 // Helper method for calcualating the new bounding volume based on prims and the ids of prims to calculate for
-AxisAlignedBox calculateAABB(std::vector<Prim>& prims, std::vector<int>& prim_ids);
+AxisAlignedBox calculateAABB(std::vector<Prim>& prims, std::vector<int>& prim_ids, int start, int end);
 
-
-
+// Helper method for calculating surface area of an AABB, used for the surface-area heuristic
+float surfaceArea(AxisAlignedBox& a);
 
 class BoundingVolumeHierarchy {
 public:
     // Constructor. Receives the scene and builds the bounding volume hierarchy.
-    BoundingVolumeHierarchy(Scene* pScene);
+    BoundingVolumeHierarchy(Scene* pScene, const Features& features);
 
     // Constructor helper for recursion
     void ConstructorHelper(std::vector<Prim>& prims, std::vector<int> prim_ids, std::vector<BVHNode>& nodes, 
-        int currLevel, int parentIdx, int idx);
+        int currLevel, int parentIdx, int idx, bool enableSAHBinning);
 
     // Return how many levels there are in the tree that you have constructed.
     [[nodiscard]] int numLevels() const;
@@ -82,4 +84,5 @@ private:
     Scene* m_pScene;
     std::vector<BVHNode> nodes;
     int max_level;
+    Features feat;
 };
