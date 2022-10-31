@@ -213,11 +213,26 @@ int main(int argc, char** argv)
                 ImGui::Checkbox("Intersected but not traversed", &debugTraversal);
                 intersectedButNotTraversed = debugTraversal;
             }
-            ImGui::SliderInt("Segment samples", &samplesPerUnit, 2, 500);
-            ImGui::SliderInt("Parallelogram samples", &samplesPerUnitParallel, 2, 100);
-            ImGui::SliderFloat("Bloom threshold", &threshold, 0.0f, 1.0f);
-            ImGui::SliderInt("Bloom size", &bloomsize, 0, 50);
-            ImGui::Checkbox("Bloom visual debug", &debugBloom);
+
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Text("Samples");
+
+            ImGui::SliderInt("Segment light", &samplesPerUnit, 2, 500);
+            ImGui::SliderInt("Parallelogram light", &samplesPerUnitParallel, 2, 100);
+          
+            ImGui::Spacing();
+            ImGui::Separator(); // make it a radi button
+            ImGui::Text("Bloom");
+            ImGui::Checkbox("Visual debug", &debugBloom);
+            ImGui::RadioButton("Box filter", &gaussian, 0);
+            ImGui::SameLine();
+            ImGui::RadioButton("Gaussian filter", &gaussian, 1);
+            if (gaussian) ImGui::SliderFloat("Sigma", &sigma, 0.5f, 10.0f);
+            ImGui::SliderFloat("Threshold", &threshold, 0.0f, 1.0f);
+            ImGui::SliderInt("Size", &bloomsize, 0, 50);
+            ImGui::SliderFloat("Scale", &scale, 0.5f, 5.0f);
+
             ImGui::Spacing();
             ImGui::Separator();
             ImGui::Text("Lights");
