@@ -13,22 +13,33 @@
 
 extern bool intersectedButNotTraversed;
 
-int extr_max_level = 24;
+int extr_max_level = 32;
+int extr_sah_bins = 64;
+bool extr_debugSAH = false;
 
-// Helper method for calcualating the new bounding volume based on prims and the ids of prims to calculate for
-AxisAlignedBox calculateAABB(std::vector<Prim>& prims, std::vector<int>& prim_ids) 
+// Helper method for calculating the new bounding volume based on prims and the ids of prims to calculate for
+AxisAlignedBox calculateAABB(std::vector<Prim>& prims, std::vector<int>& prim_ids, int start = 0, int end = -1) 
 {
     glm::vec3 min = glm::vec3 { std::numeric_limits<float>::max() };
     glm::vec3 max = glm::vec3 { -std::numeric_limits<float>::max() };
-    std::for_each(prim_ids.begin(), prim_ids.end(), [&](int i) {
-        Prim p = prims[i];
+    for (int i = start; i < (end == -1 ? prim_ids.size() : end); i++) {
+        Prim p = prims[prim_ids[i]];
         min = { std::fmin(min.x, p.min.x), std::fmin(min.y, p.min.y), std::fmin(min.z, p.min.z) };
         max = { std::fmax(max.x, p.max.x), std::fmax(max.y, p.max.y), std::fmax(max.z, p.max.z) };
-    });
+    }
     return { min, max };
 }
 
-BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene): m_pScene(pScene)
+// Helper method for calculating surface area of an AABB, used for the surface-area heuristic
+float surfaceArea(AxisAlignedBox& a)
+{
+    glm::vec3 b = a.upper - a.lower;
+    b = { b.y, b.z, b.x };
+    return glm::dot(a.upper - a.lower, b);
+}
+
+BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene, const Features& features)
+    : m_pScene(pScene)
 {
     // Start clock for benchmarking
     using clock = std::chrono::high_resolution_clock;
@@ -38,6 +49,8 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene): m_pScene(pScene
     this->m_numLeaves = 0;
     this->m_numLevels = 0;
     std::vector<BVHNode> nodes;
+    // Save bool for visual debug
+    this->feat = features;
 
     // Create prim vector -> store for each primitive ->
     // triangle: *opt{vertices}, min_vector, max_vector, centroid, *opt{indexes of vertices}, index of triangle, index of mesh
@@ -72,15 +85,26 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene): m_pScene(pScene
     std::iota(i.begin(), i.end(), 0);
 
     //Recursive
-    ConstructorHelper(prims, i, nodes, 0, -1, 0);
+    ConstructorHelper(prims, i, nodes, 0, -1, 0, this->feat.extra.enableBvhSahBinning);
     this->nodes = nodes;
     const auto end = clock::now();
-    std::cout << "Time to create BVH: " << std::chrono::duration<float, std::milli>(end - start).count() << " milliseconds" << std::endl;
+    // check if SAH or regular BVH was generated
+    if (this->feat.extra.enableBvhSahBinning) {
+        std::cout << "Time to create BVH with SAH and ";
+        // if enough primitives to bin, consider that
+        if (extr_sah_bins < prims.size())
+            std::cout << std::setprecision(4) << extr_sah_bins << "-way binning: ";
+        // otherwise sah with every centroid checked
+        else
+            std::cout << "no binning: ";
+        std::cout << std::setprecision(-1) << std::chrono::duration<float, std::milli>(end - start).count() << " milliseconds " << std::endl;
+    } else
+        std::cout << "Time to create basic BVH: " << std::chrono::duration<float, std::milli>(end - start).count() << " milliseconds " << std::endl;
 }
 
 // Constructor helper for recursion
 void BoundingVolumeHierarchy::ConstructorHelper(std::vector<Prim>& prims, std::vector<int> prim_ids, 
-    std::vector<BVHNode>& nodes, int currLevel, int parentIdx, int idx)
+    std::vector<BVHNode>& nodes, int currLevel, int parentIdx, int idx, bool enabledSAHBinning)
 {
     // Update number of levels
     this->m_numLevels = std::max(this->m_numLevels, currLevel + 1);
@@ -98,24 +122,88 @@ void BoundingVolumeHierarchy::ConstructorHelper(std::vector<Prim>& prims, std::v
         });
         this->m_numLeaves++;
         nodes.push_back(current);
+        // Store child idx to parent
         if (parentIdx != -1) 
             nodes[parentIdx].ids.push_back(idx);
     // Handle internal node
     } else {
         current.isLeafNode = false;
 
-        // Sort by centroid/sphere center
-        std::sort(prim_ids.begin(), prim_ids.end(), [&](int i, int j) {
-            return prims[i].centr[currLevel % 3] < prims[j].centr[currLevel % 3];
-        });
-
+        int splitPoint = 0;
+        if (enabledSAHBinning) 
+        {
+            // Sort by all axes and find minimal SAH cost
+            // SAH cost defined as (SA(left) * prim_num(left) + SA(right) * prim_num(right)) / SA(full)
+            // Explanation given in the report for the above formula
+            float minCost = std::numeric_limits<float>::max();
+            // Micro-optimization by calculating current box volume only once
+            float cur_surfaceAreaRec = 1.0f / surfaceArea(current.box);
+            int axis = -1;
+            for (int a = 0; a < 3; a++) 
+            {
+                // Sort by current axis
+                std::sort(prim_ids.begin(), prim_ids.end(), [&](int i, int j) {
+                    return prims[i].centr[a] < prims[j].centr[a];
+                });
+                // if more or bins than primitives or equal > check every centroid split
+                if (extr_sah_bins >= prim_ids.size()) {
+                    // Find best split by the aforementioned SAH criteria
+                    for (int i = 1; i < prim_ids.size(); i++) {
+                        AxisAlignedBox left = calculateAABB(prims, prim_ids, 0, i);
+                        AxisAlignedBox right = calculateAABB(prims, prim_ids, i);
+                        float currCost = (surfaceArea(left) * i + surfaceArea(right) * (prim_ids.size() - i)) * cur_surfaceAreaRec;
+                        if (currCost < minCost) {
+                            // Store min cost, index of split point, and best axis
+                            minCost = currCost;
+                            axis = a;
+                            splitPoint = i;
+                        }
+                    }
+                } else {
+                    // Get centroid range, then split on even bins
+                    float centroidrange = prims[prim_ids[prim_ids.size() - 1]].centr[a] - prims[prim_ids[0]].centr[a];
+                    // Precompute distance between two bin boundaries
+                    float dist = centroidrange / extr_sah_bins;
+                    // Start from first primitive, for each bin boundary increment to encapsulate all prim ids left of the boundary
+                    int countLeft = 1;
+                    for (int i = 0; i < extr_sah_bins; i++) 
+                    {
+                        float currSplit = prims[prim_ids[0]].centr[a] + i * dist; 
+                        // increment countLeft until prim with centroid proj larger than current bin boundary is found
+                        while (prims[prim_ids[countLeft]].centr[a] < currSplit)
+                            countLeft++;
+                        AxisAlignedBox left = calculateAABB(prims, prim_ids, 0, countLeft);
+                        AxisAlignedBox right = calculateAABB(prims, prim_ids, countLeft);
+                        float currCost = (surfaceArea(left) * countLeft + surfaceArea(right) * (prim_ids.size() - countLeft)) * cur_surfaceAreaRec;
+                        if (currCost < minCost) {
+                            // Store min cost, index of split point, and best axis
+                            minCost = currCost;
+                            axis = a;
+                            splitPoint = countLeft;
+                        }
+                    }
+                }
+            }
+            // Sort by best axis for further recursive calls
+            std::sort(prim_ids.begin(), prim_ids.end(), [&](int i, int j) {
+                return prims[i].centr[axis] < prims[j].centr[axis];
+            });
+        } else {
+            // Sort by centroid/sphere center
+            std::sort(prim_ids.begin(), prim_ids.end(), [&](int i, int j) {
+                return prims[i].centr[currLevel % 3] < prims[j].centr[currLevel % 3];
+            });
+            // Take median as split point
+            splitPoint = prim_ids.size() / 2;
+        }
+        // Store child idx to parent
         nodes.push_back(current);
         if(parentIdx != -1) 
             nodes[parentIdx].ids.push_back(idx);
 
         // Recursive call
-        ConstructorHelper(prims, { prim_ids.begin(), prim_ids.begin() + prim_ids.size() / 2 }, nodes, currLevel + 1, idx, nodes.size());
-        ConstructorHelper(prims, { prim_ids.begin() + prim_ids.size() / 2, prim_ids.end() }, nodes, currLevel + 1, idx, nodes.size());
+        ConstructorHelper(prims, { prim_ids.begin(), prim_ids.begin() + splitPoint }, nodes, currLevel + 1, idx, nodes.size(), enabledSAHBinning);
+        ConstructorHelper(prims, { prim_ids.begin() + splitPoint, prim_ids.end() }, nodes, currLevel + 1, idx, nodes.size(), enabledSAHBinning);
     }
 }
 
@@ -148,6 +236,16 @@ void BoundingVolumeHierarchy::debugDrawLevel(int level)
     //drawShape(aabb, DrawMode::Filled, glm::vec3(0.0f, 1.0f, 0.0f), 0.2f);
 
     // Draw the AABB as a (white) wireframe box.
+    if (extr_debugSAH) 
+    {
+        Features newFeat = feat;
+        newFeat.extra.enableBvhSahBinning = false;
+        BoundingVolumeHierarchy bvh_two = { m_pScene, newFeat };
+        std::for_each(bvh_two.nodes.begin(), bvh_two.nodes.end(), [&](BVHNode n) {
+            if (n.level == level)
+                drawAABB(n.box, DrawMode::Wireframe, glm::vec3(1.0f, 0.0f, 0.0f), 0.5f);
+        });
+    }
     std::for_each(this->nodes.begin(), this->nodes.end(), [&](BVHNode n) {
         if (n.level == level)
             drawAABB(n.box, DrawMode::Wireframe, glm::vec3(1.0f, 1.0f, 1.0f), 1.0f);
