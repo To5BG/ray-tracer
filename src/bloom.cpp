@@ -20,8 +20,9 @@ std::vector<std::vector<float>> gaussianKernel(float sigma)
     std::vector<std::vector<float>> gaus;
     // will be the total sum to devide every value by
     float denom = 0;
-
     const auto spread = 1.0 / (2 * sd);
+
+    //create the gaussian kernel
     for (int i = 0; i < size; i++) {
         const auto x = i - bloomsize;
         float valx = std::exp(-x * x * spread);
@@ -37,6 +38,7 @@ std::vector<std::vector<float>> gaussianKernel(float sigma)
         gaus.push_back(gausx);
     }
 
+    // devide everything by the denominator
     for (int i = 0; i < size; i++) {
         for (int j = 0; j < size; j++) {
             gaus[i][j] /= denom;
@@ -71,18 +73,17 @@ glm::vec3 filterPixel(int index, int width, int height)
              
                 // do either gaussian or box filter
                 if (gaussian) {
+                    // multiply each pixel with corresponding gaussian index
                     avg += filterPixels[index + widthpos + heightpos] * gaussianFilter[j][i];
                 } else {
+                    // average each pixel (box filter)
                     avg += filterPixels[index + widthpos + heightpos] / (float)(pow(filtersize, 2));
                 }
             }
-            
         }
     }
-
     return avg;
 }
-
 
 void addBloom(std::vector<glm::vec3>& pixels, int width, int height) {
 
@@ -93,6 +94,7 @@ void addBloom(std::vector<glm::vec3>& pixels, int width, int height) {
 
 		glm::vec3 color = pixels[i];
 
+        //check threshold
         if (color.x > threshold || color.y > threshold || color.z > threshold) {
             filterPixels.push_back(color);
         } else {
@@ -104,6 +106,7 @@ void addBloom(std::vector<glm::vec3>& pixels, int width, int height) {
     // loop over each pixel again, and apply the boxfilter
     for (int i = 0; i < pixels.size(); i++) {
         if (debugBloom) {
+            // calculate each pixel and multiply with scale for extra brightness
             pixels[i] = filterPixel(i, width, height) * scale;
         } else {
             pixels[i] += filterPixel(i, width, height) * scale;

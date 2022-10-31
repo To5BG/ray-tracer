@@ -222,7 +222,7 @@ int main(int argc, char** argv)
             ImGui::SliderInt("Parallelogram light", &samplesPerUnitParallel, 2, 100);
           
             ImGui::Spacing();
-            ImGui::Separator(); // make it a radi button
+            ImGui::Separator(); 
             ImGui::Text("Bloom");
             ImGui::Checkbox("Visual debug", &debugBloom);
             ImGui::RadioButton("Box filter", &gaussian, 0);
