@@ -368,9 +368,10 @@ int main(int argc, char** argv)
                     glEnable(GL_BLEND);
                     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
                     enableDebugDraw = true;
-                    if (debugBVHLevel)
-                        extr_debugSAH = debugSAH;
+                    if (debugBVHLevel) {
+                        extr_debugSAH = enabledSAHBinning && debugSAH;
                         bvh.debugDrawLevel(bvhDebugLevel);
+                    }
                     if (debugBVHLeaf)
                         bvh.debugDrawLeaf(bvhDebugLeaf);
                     if (debugBVHMaxLevel && bvhDebugMaxLevel != extr_max_level) 
