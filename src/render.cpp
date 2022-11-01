@@ -34,8 +34,8 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
             }
         }
 
-        // Draw a white debug ray if the ray hits.
-        if (features.enableShading) {
+        // Draw a white debug ray if the ray hits, but if shading/multiple rays make the ray the same color as the hit
+        if (features.enableShading || features.extra.enableMultipleRaysPerPixel) {
             drawRay(ray, Lo);
         }else {
             drawRay(ray, glm::vec3(1.0f));

@@ -92,12 +92,12 @@ int main(int argc, char** argv)
                     // Shoot a ray. Produce a ray from camera to the far plane.
                     const auto tmp = window.getNormalizedCursorPos();
 
+                    optDebugRay = camera.generateRay(tmp * 2.0f - 1.0f);
+
                     // if multiple rays per pixel, draw all of them and call the function
-                    if (config.features.extra.enableMultipleRaysPerPixel) {
+                    if (config.features.extra.enableMultipleRaysPerPixel) 
                         (void)calculateColor(scene, camera, bvh, screen, config.features, window.getCursorPos().x, window.getCursorPos().y, window.getWindowSize(), 1);
-                    } else {
-                        optDebugRay = camera.generateRay(tmp * 2.0f - 1.0f);
-                    }
+
                 } break;
                 case GLFW_KEY_A: {
                     debugBVHLeafId++;

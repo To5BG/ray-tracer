@@ -28,9 +28,14 @@ glm::vec3 calculateColor(const Scene& scene, const Trackball& camera, const BvhI
     for (int i = 0; i < rayMultiplier; i++) {
         for (int j = 0; j < rayMultiplier; j++) {
 
+            // create random offset
+            float randomx = (float)((rand() % 100) / 100.0f);
+            float randomy = (float)((rand() % 100) / 100.0f);
+
+            // calc the pixelpos
             glm::vec2 normalizedPixelPos {
-                float(x + (i / float(rayMultiplier))) / float(windowResolution.x) * 2.0f - 1.0f,
-                float(y + (j / float(rayMultiplier))) / float(windowResolution.y) * 2.0f - 1.0f
+                float(x + ((i) / float(rayMultiplier) + randomy)) / float(windowResolution.x) * 2.0f - 1.0f,
+                float(y + ((j) / float(rayMultiplier) + randomy)) / float(windowResolution.y) * 2.0f - 1.0f
             };
 
             // calculate the ray
