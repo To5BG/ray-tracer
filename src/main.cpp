@@ -4,6 +4,8 @@
 #include "render.h"
 #include "screen.h"
 #include "multipleRays.h"
+
+
 // Suppress warnings in third-party code.
 #include <framework/disable_all_warnings.h>
 DISABLE_WARNINGS_PUSH()
@@ -39,7 +41,6 @@ enum class ViewMode {
 
 int debugBVHLeafId = 0;
 bool intersectedButNotTraversed = false;
-
 static void setOpenGLMatrices(const Trackball& camera);
 static void drawLightsOpenGL(const Scene& scene, const Trackball& camera, int selectedLight);
 static void drawSceneOpenGL(const Scene& scene);
@@ -90,7 +91,13 @@ int main(int argc, char** argv)
                 case GLFW_KEY_R: {
                     // Shoot a ray. Produce a ray from camera to the far plane.
                     const auto tmp = window.getNormalizedCursorPos();
+
+                    // if multiple rays per pixel, draw all of them and call the function
+                    if (config.features.extra.enableMultipleRaysPerPixel) {
+                        (void)calculateColor(scene, camera, bvh, screen, config.features, window.getCursorPos().x, window.getCursorPos().y, window.getWindowSize(), 1);
+                    } else {
                         optDebugRay = camera.generateRay(tmp * 2.0f - 1.0f);
+                    }
                 } break;
                 case GLFW_KEY_A: {
                     debugBVHLeafId++;
@@ -348,7 +355,17 @@ int main(int argc, char** argv)
                     enableDebugDraw = true;
                     glDisable(GL_LIGHTING);
                     glDepthFunc(GL_LEQUAL);
+
+                    if (config.features.extra.enableMultipleRaysPerPixel) {
+                        // draw each ray if multiple rays per pixel
+                        for (Ray ray : rays) {
+                            (void)getFinalColor(scene, bvh, ray, config.features);
+                        }
+
+                    } else {                    
                     (void)getFinalColor(scene, bvh, *optDebugRay, config.features);
+                    }
+
                     enableDebugDraw = false;
                 }
                 glPopAttrib();
