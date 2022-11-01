@@ -228,9 +228,6 @@ int main(int argc, char** argv)
                 ImGui::Checkbox("Intersected but not traversed", &debugTraversal);
                 intersectedButNotTraversed = debugTraversal;
             }
-            ImGui::SliderInt("Segment samples", &samplesPerUnit, 2, 500);
-            ImGui::SliderInt("Parallelogram samples", &samplesPerUnitParallel, 2, 100);
-            ImGui::SliderInt("Ray multiplier", &rayMultiplier, 1, 10);
 
             ImGui::Spacing();
             ImGui::Separator();
@@ -238,6 +235,7 @@ int main(int argc, char** argv)
 
             ImGui::SliderInt("Segment light", &samplesPerUnit, 2, 500);
             ImGui::SliderInt("Parallelogram light", &samplesPerUnitParallel, 2, 100);
+            ImGui::SliderInt("Ray multiplier", &rayMultiplier, 1, 10);
           
             ImGui::Spacing();
             ImGui::Separator(); 
