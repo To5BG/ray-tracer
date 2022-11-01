@@ -2,6 +2,7 @@
 #include "intersect.h"
 #include "light.h"
 #include "screen.h"
+#include "bloom.h"
 #include "multipleRays.h"
 #include <framework/trackball.h>
 #ifdef NDEBUG
@@ -9,14 +10,26 @@
 #endif
 #include <iostream>
 
-
 glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, int rayDepth)
 {
     HitInfo hitInfo;
-   // std::cout << ray.direction.x << " " << ray.t << " " << ray.origin.x << std::endl;
+    float t = ray.t;
+   
     if (bvh.intersect(ray, hitInfo, features)) {
 
         glm::vec3 Lo = computeLightContribution(scene, bvh, features, ray, hitInfo);
+
+        if (features.extra.enableTransparency) {
+            drawRay(ray, Lo);
+            if (hitInfo.material.transparency != 1.0) {
+                Ray newRay = {};
+                newRay.direction = ray.direction;
+                newRay.origin = (ray.t+0.000001f) * ray.direction + ray.origin;
+                newRay.t = std::numeric_limits<float>::max();
+                return hitInfo.material.transparency * Lo + (1.0f - hitInfo.material.transparency) * getFinalColor(scene, bvh, newRay, features, rayDepth);
+               
+            } 
+        }
 
         if (features.enableRecursive) {
             
@@ -78,5 +91,8 @@ void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInte
 
             screen.setPixel(x, y, color);
         }
+    }
+    if (features.extra.enableBloomEffect) {
+        addBloom(screen.pixels(), windowResolution.x, windowResolution.y);
     }
 }

@@ -28,6 +28,7 @@ add_library(FinalProjectLib
 	"src/shading.cpp"
 	"src/interpolate.cpp"
 	"src/render.cpp"
+	"src/bloom.cpp"
 	"src/multipleRays.cpp"
 
 )
