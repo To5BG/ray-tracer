@@ -2,12 +2,12 @@
 #include "intersect.h"
 #include "light.h"
 #include "screen.h"
+#include "bloom.h"
 #include <framework/trackball.h>
 #ifdef NDEBUG
 #include <omp.h>
 #endif
 #include <iostream>
-
 
 glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, int rayDepth)
 {
@@ -79,6 +79,10 @@ void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInte
             };
             const Ray cameraRay = camera.generateRay(normalizedPixelPos);
             screen.setPixel(x, y, getFinalColor(scene, bvh, cameraRay, features));
+            
         }
+    }
+    if (features.extra.enableBloomEffect) {
+        addBloom(screen.pixels(), windowResolution.x, windowResolution.y);
     }
 }
