@@ -3,6 +3,7 @@
 #include "light.h"
 #include "render.h"
 #include "screen.h"
+#include "multipleRays.h"
 // Suppress warnings in third-party code.
 #include <framework/disable_all_warnings.h>
 DISABLE_WARNINGS_PUSH()
@@ -160,6 +161,7 @@ int main(int argc, char** argv)
                 ImGui::Checkbox("Bloom effect", &config.features.extra.enableBloomEffect);
                 ImGui::Checkbox("Texture filtering(bilinear interpolation)", &config.features.extra.enableBilinearTextureFiltering);
                 ImGui::Checkbox("Texture filtering(mipmapping)", &config.features.extra.enableMipmapTextureFiltering);
+                ImGui::Checkbox("Multiple Rays per pixel", &config.features.extra.enableMultipleRaysPerPixel);
                 ImGui::Checkbox("Glossy reflections", &config.features.extra.enableGlossyReflection);
                 ImGui::Checkbox("Transparency", &config.features.extra.enableTransparency);
                 ImGui::Checkbox("Depth of field", &config.features.extra.enableDepthOfField);
@@ -220,6 +222,7 @@ int main(int argc, char** argv)
             }
             ImGui::SliderInt("Segment samples", &samplesPerUnit, 2, 500);
             ImGui::SliderInt("Parallelogram samples", &samplesPerUnitParallel, 2, 100);
+            ImGui::SliderInt("Ray multiplier", &rayMultiplier, 1, 10);
 
             ImGui::Spacing();
             ImGui::Separator();

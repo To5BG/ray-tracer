@@ -2,6 +2,7 @@
 #include "intersect.h"
 #include "light.h"
 #include "screen.h"
+#include "multipleRays.h"
 #include <framework/trackball.h>
 #ifdef NDEBUG
 #include <omp.h>
@@ -66,7 +67,30 @@ void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInte
                 float(y) / float(windowResolution.y) * 2.0f - 1.0f
             };
             const Ray cameraRay = camera.generateRay(normalizedPixelPos);
-            screen.setPixel(x, y, getFinalColor(scene, bvh, cameraRay, features));
+
+            glm::vec3 color = getFinalColor(scene, bvh, cameraRay, features);
+
+            if (features.extra.enableMultipleRaysPerPixel) {
+
+                 const glm::vec2 normalizedPixelPos1 {
+                    float(x - 0.5f) / float(windowResolution.x) * 2.0f - 1.0f,
+                    float(y -0.5f) / float(windowResolution.y) * 2.0f - 1.0f
+                };
+
+                  const glm::vec2 normalizedPixelPos2 {
+                     float(x + 0.5f) / float(windowResolution.x) * 2.0f - 1.0f,
+                     float(y + 0.5f) / float(windowResolution.y) * 2.0f - 1.0f
+                 };
+
+                const Ray cameraRay1 = camera.generateRay(normalizedPixelPos1);
+                const Ray cameraRay2 = camera.generateRay(normalizedPixelPos2);
+
+                glm::vec3 color1 = getFinalColor(scene, bvh, cameraRay1, features);
+                glm::vec3 color2 = getFinalColor(scene, bvh, cameraRay2, features);
+                color = (color1 + color2)/2.0f;
+            }
+
+            screen.setPixel(x, y, color);
         }
     }
 }
