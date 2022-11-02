@@ -174,7 +174,7 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                     // shade
                     glm::vec3 shade = features.enableShading 
                         ? computeShading(position, color, features, ray, hitInfo) * sampleCountRec 
-                        : hitInfo.material.kd;
+                        : hitInfo.material.kd * sampleCountRec;
                     shading += shade * lighted;
                 }
             }
@@ -208,7 +208,7 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                         // shade
                         glm::vec3 shade = features.enableShading 
                             ? computeShading(position, color, features, ray, hitInfo) * dirISamplesRec * dirJSamplesRec 
-                            : hitInfo.material.kd;
+                            : hitInfo.material.kd * dirISamplesRec * dirJSamplesRec;
                         shading += shade * lighted;
                     }
                 }

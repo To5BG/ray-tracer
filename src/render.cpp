@@ -3,6 +3,7 @@
 #include "light.h"
 #include "screen.h"
 #include "bloom.h"
+#include "multipleRays.h"
 #include <framework/trackball.h>
 #ifdef NDEBUG
 #include <omp.h>
@@ -46,8 +47,8 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
             }
         }
 
-        // Draw a white debug ray if the ray hits.
-        if (features.enableShading) {
+        // Draw a white debug ray if the ray hits, but if shading/multiple rays make the ray the same color as the hit
+        if (features.enableShading || features.extra.enableMultipleRaysPerPixel) {
             drawRay(ray, Lo);
         }else {
             drawRay(ray, glm::vec3(1.0f));
@@ -73,13 +74,22 @@ void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInte
     for (int y = 0; y < windowResolution.y; y++) {
         for (int x = 0; x != windowResolution.x; x++) {
             // NOTE: (-1, -1) at the bottom left of the screen, (+1, +1) at the top right of the screen.
-            const glm::vec2 normalizedPixelPos {
-                float(x) / float(windowResolution.x) * 2.0f - 1.0f,
-                float(y) / float(windowResolution.y) * 2.0f - 1.0f
-            };
-            const Ray cameraRay = camera.generateRay(normalizedPixelPos);
-            screen.setPixel(x, y, getFinalColor(scene, bvh, cameraRay, features));
-            
+           
+            glm::vec3 color;
+
+            // calculate the ray, (multiple if boolean set to true)
+            if (features.extra.enableMultipleRaysPerPixel) {
+                 color = calculateColor(scene, camera, bvh, screen, features, float(x), float(y) , std::nullopt, 0);
+            } else {
+                const glm::vec2 normalizedPixelPos {
+                    float(x) / float(windowResolution.x) * 2.0f - 1.0f,
+                    float(y) / float(windowResolution.y) * 2.0f - 1.0f
+                };
+                const Ray cameraRay = camera.generateRay(normalizedPixelPos);
+                color = getFinalColor(scene, bvh, cameraRay, features);
+            }
+
+            screen.setPixel(x, y, color);
         }
     }
     if (features.extra.enableBloomEffect) {

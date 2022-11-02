@@ -4,6 +4,9 @@
 #include "render.h"
 #include "bloom.h"
 #include "screen.h"
+#include "multipleRays.h"
+
+
 // Suppress warnings in third-party code.
 #include <framework/disable_all_warnings.h>
 DISABLE_WARNINGS_PUSH()
@@ -39,7 +42,6 @@ enum class ViewMode {
 
 int debugBVHLeafId = 0;
 bool intersectedButNotTraversed = false;
-
 static void setOpenGLMatrices(const Trackball& camera);
 static void drawLightsOpenGL(const Scene& scene, const Trackball& camera, int selectedLight);
 static void drawSceneOpenGL(const Scene& scene);
@@ -90,7 +92,13 @@ int main(int argc, char** argv)
                 case GLFW_KEY_R: {
                     // Shoot a ray. Produce a ray from camera to the far plane.
                     const auto tmp = window.getNormalizedCursorPos();
-                        optDebugRay = camera.generateRay(tmp * 2.0f - 1.0f);
+
+                    optDebugRay = camera.generateRay(tmp * 2.0f - 1.0f);
+
+                    // if multiple rays per pixel, draw all of them and call the function
+                    if (config.features.extra.enableMultipleRaysPerPixel) 
+                        (void)calculateColor(scene, camera, bvh, screen, config.features, window.getCursorPos().x, window.getCursorPos().y, window.getWindowSize(), 1);
+
                 } break;
                 case GLFW_KEY_A: {
                     debugBVHLeafId++;
@@ -161,6 +169,7 @@ int main(int argc, char** argv)
                 ImGui::Checkbox("Bloom effect", &config.features.extra.enableBloomEffect);
                 ImGui::Checkbox("Texture filtering(bilinear interpolation)", &config.features.extra.enableBilinearTextureFiltering);
                 ImGui::Checkbox("Texture filtering(mipmapping)", &config.features.extra.enableMipmapTextureFiltering);
+                ImGui::Checkbox("Multiple Rays per pixel", &config.features.extra.enableMultipleRaysPerPixel);
                 ImGui::Checkbox("Glossy reflections", &config.features.extra.enableGlossyReflection);
                 ImGui::Checkbox("Transparency", &config.features.extra.enableTransparency);
                 ImGui::Checkbox("Depth of field", &config.features.extra.enableDepthOfField);
@@ -226,6 +235,7 @@ int main(int argc, char** argv)
 
             ImGui::SliderInt("Segment light", &samplesPerUnit, 2, 500);
             ImGui::SliderInt("Parallelogram light", &samplesPerUnitParallel, 2, 100);
+            ImGui::SliderInt("Ray multiplier", &rayMultiplier, 1, 10);
           
             ImGui::Spacing();
             ImGui::Separator(); 
@@ -363,7 +373,17 @@ int main(int argc, char** argv)
                     enableDebugDraw = true;
                     glDisable(GL_LIGHTING);
                     glDepthFunc(GL_LEQUAL);
+
+                    if (config.features.extra.enableMultipleRaysPerPixel) {
+                        // draw each ray if multiple rays per pixel
+                        for (Ray ray : rays) {
+                            (void)getFinalColor(scene, bvh, ray, config.features);
+                        }
+
+                    } else {                    
                     (void)getFinalColor(scene, bvh, *optDebugRay, config.features);
+                    }
+
                     enableDebugDraw = false;
                 }
                 glPopAttrib();
