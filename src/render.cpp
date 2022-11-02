@@ -42,7 +42,7 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
                     std::for_each(rays.begin(), rays.end(), [&](Ray r) {
                         avg += getFinalColor(scene, bvh, r, features, rayDepth - 1);
                     });
-                    return avg * hitInfo.material.ks / float(extr_glossy_filterSize);
+                    return hitInfo.material.ks * avg / float(extr_glossy_filterSize);
                 }
                 return hitInfo.material.ks * getFinalColor(scene, bvh, reflection, features, rayDepth - 1);
             }
