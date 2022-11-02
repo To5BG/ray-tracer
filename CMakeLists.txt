@@ -30,6 +30,7 @@ add_library(FinalProjectLib
 	"src/render.cpp"
 	"src/bloom.cpp"
 	"src/gloss.cpp"
+	"src/multipleRays.cpp"
 )
 
 if (REFERENCE_MODE)
