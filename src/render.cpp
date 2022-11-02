@@ -36,27 +36,16 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
             if (rayDepth > 0 && hitInfo.material.ks != glm::vec3({ 0, 0, 0 })) {
                 drawRay(ray, glm::vec3 { 1.0f });
                 Ray reflection = computeReflectionRay(ray, hitInfo);
-                if (features.enableRecursive) {
-                    return hitInfo.material.ks * getFinalColor(scene, bvh, reflection, features, rayDepth - 1);
+                if (features.extra.enableGlossyReflection) {
+                    int i = 0;
+                    glm::vec3 avg = glm::vec3 { 0.0f };
+                    std::vector<Ray> rays = getRaySamples(hitInfo, reflection);
+                    std::for_each(rays.begin(), rays.end(), [&](Ray r) {
+                        avg += getFinalColor(scene, bvh, r, features, rayDepth - 1);
+                    });
+                    return avg / float(extr_glossy_filterSize);
                 }
-                int i = 0;
-                glm::vec3 avg = glm::vec3 { 0.0f };
-                //AxisAlignedBox sq = getBlurSquare(reflection);
-                //drawAABB(sq, DrawMode::Wireframe, { 1.0f, 1.0f, 1.0f }, 0.5f);
-                //glm::vec3 U = sq.lower;
-                glm::vec3 U = ray.origin + ray.direction - 1.0f / hitInfo.material.shininess;
-                glm::vec3 V = ray.origin + ray.direction + 1.0f / hitInfo.material.shininess;
-                for (float u = -glossy_filter.filterSize; u <= glossy_filter.filterSize; u++) {
-                    for (float v = -glossy_filter.filterSize; v <= glossy_filter.filterSize; v++) {
-                // 
-                //        glm::vec3 V = sq.upper;
-                // 
-                        Ray pertr_refl = { reflection.origin, reflection.direction + u * U + v * V, reflection.t };
-                        i++;
-                        avg += (hitInfo.material.ks * glossy_filter.kernel[i] * getFinalColor(scene, bvh, pertr_refl, features, rayDepth - 1));
-                    }
-                }
-                return avg;
+                return hitInfo.material.ks * getFinalColor(scene, bvh, reflection, features, rayDepth - 1);
             }
             drawRay(ray, Lo);
             // Set the color of the pixel to white if the ray hits.

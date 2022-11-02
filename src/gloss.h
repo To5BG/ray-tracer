@@ -4,18 +4,7 @@
 #include <glm/glm.hpp>
 #include <map>
 
-AxisAlignedBox getBlurSquare(Ray& ray);
+extern int extr_glossy_filterSize;
+extern float extr_glossy_sigma;
 
-struct ContinuousGaussianFilter {
-    int filterSize;
-    float sigma;
-    //float dist;
-    std::vector<float> kernel;
-
-    ContinuousGaussianFilter();
-
-    ContinuousGaussianFilter(int f, float s, float d);
-};
-
-extern ContinuousGaussianFilter glossy_filter;
-// extern std::map <int, ContinuousGaussianFilter> glossy_gaussian_filters;
+std::vector<Ray> getRaySamples(HitInfo& hitInfo, Ray& ray);

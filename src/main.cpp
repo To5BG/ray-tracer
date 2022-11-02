@@ -75,8 +75,6 @@ int main(int argc, char** argv)
         int bvhDebugLeaf = 0;
         int bvhDebugMaxLevel = extr_max_level;
         int bvhSahBinCount = extr_sah_bins;
-        int gloss_filter_size = 3;
-        float gloss_filter_sigma = 0.8f;
 
         bool debugSAH = extr_debugSAH;
         bool debugBVHLevel { false };
@@ -167,8 +165,8 @@ int main(int argc, char** argv)
                 ImGui::Checkbox("Glossy reflections", &config.features.extra.enableGlossyReflection);
                 if (config.features.extra.enableGlossyReflection) 
                 { 
-                    ImGui::SliderInt("Glossy reflection filter size", &gloss_filter_size, 1, 10);
-                    ImGui::SliderFloat("Glossy reflection sigma", &gloss_filter_sigma, 0.1, 3);
+                    ImGui::SliderInt("Glossy reflection filter size", &extr_glossy_filterSize, 1, 100);
+                    ImGui::SliderFloat("Glossy reflection sigma", &extr_glossy_sigma, 0.01f, 10.0f);
                 }
                 ImGui::Checkbox("Transparency", &config.features.extra.enableTransparency);
                 ImGui::Checkbox("Depth of field", &config.features.extra.enableDepthOfField);
@@ -378,9 +376,7 @@ int main(int argc, char** argv)
 
                 drawLightsOpenGL(scene, camera, selectedLightIdx);
 
-                if (config.features.extra.enableGlossyReflection && (gloss_filter_sigma != glossy_filter.sigma || gloss_filter_size != glossy_filter.filterSize)) {
-                    glossy_filter = ContinuousGaussianFilter { gloss_filter_size, gloss_filter_sigma, 1.0f };
-                }
+
                 if (enabledSAHBinning != config.features.extra.enableBvhSahBinning || bvhSahBinCount != extr_sah_bins) {
                     extr_sah_bins = bvhSahBinCount;
                     config.features.extra.enableBvhSahBinning = enabledSAHBinning;
