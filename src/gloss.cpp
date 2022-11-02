@@ -4,6 +4,7 @@
 #include <map>
 #include <random>
 #include "light.h"
+#include <framework/opengl_includes.h>
 
 int extr_glossy_filterSize = 20;
 float extr_glossy_sigma = 1;
@@ -17,11 +18,12 @@ std::vector<Ray> getRaySamples(HitInfo& hitInfo, Ray& ref)
     glm::vec3 u = glm::normalize(glm::cross(w, hitInfo.normal));
     glm::vec3 v = glm::cross(w, u);
 
+    glColor3f( 0.5f, 0.0f, 0.5f );
     float side = extr_glossy_sigma / (hitInfo.material.shininess * 4.0f);
     drawTriangle(Vertex { ref.origin + 0.25f * w - side * (u + v) }, 
         Vertex { ref.origin + 0.25f * w + side * (u - v) },
         Vertex { ref.origin + 0.25f * w + side * (v - u) });
-    drawTriangle(Vertex { ref.origin + 0.2f * w + side * (u + v) }, 
+    drawTriangle(Vertex { ref.origin + 0.25f * w + side * (u + v) }, 
         Vertex { ref.origin + 0.25f * w + side * (v - u) }, 
         Vertex { ref.origin + 0.25f * w + side * (u - v) });
 
