@@ -34,7 +34,7 @@ glm::vec3 calculateColor(const Scene& scene, const Trackball& camera, const BvhI
 
             // calc the pixelpos
             glm::vec2 normalizedPixelPos {
-                float(x + ((i) / float(rayMultiplier) + randomy)) / float(windowResolution.x) * 2.0f - 1.0f,
+                float(x + ((i) / float(rayMultiplier) + randomx)) / float(windowResolution.x) * 2.0f - 1.0f,
                 float(y + ((j) / float(rayMultiplier) + randomy)) / float(windowResolution.y) * 2.0f - 1.0f
             };
 
