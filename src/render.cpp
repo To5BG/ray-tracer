@@ -4,6 +4,7 @@
 #include "screen.h"
 #include "bloom.h"
 #include <framework/trackball.h>
+#include "gloss.h"
 #ifdef NDEBUG
 #include <omp.h>
 #endif
@@ -30,46 +31,55 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
             } 
         }
 
-        if (features.enableRecursive) {
+        if (features.enableRecursive || features.extra.enableGlossyReflection) {
             
-            // TODO: put your own implementation of recursive ray tracing here.
-            if (rayDepth > 0 && hitInfo.material.ks != glm::vec3({0,0,0})) {
-                drawRay(ray, glm::vec3(1.0f));
+            if (rayDepth > 0 && hitInfo.material.ks != glm::vec3({ 0, 0, 0 })) {
+                drawRay(ray, glm::vec3 { 1.0f });
                 Ray reflection = computeReflectionRay(ray, hitInfo);
-                
-                return hitInfo.material.ks * getFinalColor(scene, bvh, reflection, features, rayDepth - 1);
-            } else {
-                drawRay(ray, Lo);
-
-        // Set the color of the pixel to white if the ray hits.
-        return Lo;
+                if (features.enableRecursive) {
+                    return hitInfo.material.ks * getFinalColor(scene, bvh, reflection, features, rayDepth - 1);
+                }
+                int i = 0;
+                glm::vec3 avg = glm::vec3 { 0.0f };
+                //AxisAlignedBox sq = getBlurSquare(reflection);
+                //drawAABB(sq, DrawMode::Wireframe, { 1.0f, 1.0f, 1.0f }, 0.5f);
+                //glm::vec3 U = sq.lower;
+                glm::vec3 U = ray.origin + ray.direction - 1.0f / hitInfo.material.shininess;
+                glm::vec3 V = ray.origin + ray.direction + 1.0f / hitInfo.material.shininess;
+                for (float u = -glossy_filter.filterSize; u <= glossy_filter.filterSize; u++) {
+                    for (float v = -glossy_filter.filterSize; v <= glossy_filter.filterSize; v++) {
+                // 
+                //        glm::vec3 V = sq.upper;
+                // 
+                        Ray pertr_refl = { reflection.origin, reflection.direction + u * U + v * V, reflection.t };
+                        i++;
+                        avg += (hitInfo.material.ks * glossy_filter.kernel[i] * getFinalColor(scene, bvh, pertr_refl, features, rayDepth - 1));
+                    }
+                }
+                return avg;
             }
-        }
-
-        // Draw a white debug ray if the ray hits.
-        if (features.enableShading) {
             drawRay(ray, Lo);
-        }else {
-            drawRay(ray, glm::vec3(1.0f));
+            // Set the color of the pixel to white if the ray hits.
+            return Lo;
         }
-
+        // Draw a white debug ray if the ray hits.
+        drawRay(ray, features.enableShading ? Lo : glm::vec3 { 1.0f });
         // Set the color of the pixel to white if the ray hits.
         return Lo;
-    } else {
-        // Draw a red debug ray if the ray missed.
-        drawRay(ray, glm::vec3(1.0f, 0.0f, 0.0f));
-        // Set the color of the pixel to black if the ray misses.
-        return glm::vec3(0.0f);
-    }
+    } 
+    // Draw a red debug ray if the ray missed.
+    drawRay(ray, glm::vec3(1.0f, 0.0f, 0.0f));
+    // Set the color of the pixel to black if the ray misses.
+    return glm::vec3(0.0f);
 }
 
 void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInterface& bvh, Screen& screen, const Features& features)
 {
     glm::ivec2 windowResolution = screen.resolution();
     // Enable multi threading in Release mode
-#ifdef NDEBUG
-#pragma omp parallel for schedule(guided)
-#endif
+    #ifdef NDEBUG
+    #pragma omp parallel for schedule(guided)
+    #endif
     for (int y = 0; y < windowResolution.y; y++) {
         for (int x = 0; x != windowResolution.x; x++) {
             // NOTE: (-1, -1) at the bottom left of the screen, (+1, +1) at the top right of the screen.
