@@ -165,8 +165,8 @@ int main(int argc, char** argv)
                 ImGui::Checkbox("Glossy reflections", &config.features.extra.enableGlossyReflection);
                 if (config.features.extra.enableGlossyReflection) 
                 { 
-                    ImGui::SliderInt("Glossy reflection filter size", &extr_glossy_filterSize, 1, 100);
-                    ImGui::SliderFloat("Glossy reflection sigma", &extr_glossy_sigma, 0.01f, 10.0f);
+                    ImGui::SliderInt("Glossy reflection filter size", &extr_glossy_filterSize, 1, 1000);
+                    ImGui::SliderFloat("Glossy reflection sigma", &extr_glossy_sigma, 0.0f, 5.0f);
                 }
                 ImGui::Checkbox("Transparency", &config.features.extra.enableTransparency);
                 ImGui::Checkbox("Depth of field", &config.features.extra.enableDepthOfField);
@@ -375,7 +375,7 @@ int main(int argc, char** argv)
                 glPopAttrib();
 
                 drawLightsOpenGL(scene, camera, selectedLightIdx);
-
+                
 
                 if (enabledSAHBinning != config.features.extra.enableBvhSahBinning || bvhSahBinCount != extr_sah_bins) {
                     extr_sah_bins = bvhSahBinCount;

@@ -37,13 +37,12 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
                 drawRay(ray, glm::vec3 { 1.0f });
                 Ray reflection = computeReflectionRay(ray, hitInfo);
                 if (features.extra.enableGlossyReflection) {
-                    int i = 0;
                     glm::vec3 avg = glm::vec3 { 0.0f };
                     std::vector<Ray> rays = getRaySamples(hitInfo, reflection);
                     std::for_each(rays.begin(), rays.end(), [&](Ray r) {
                         avg += getFinalColor(scene, bvh, r, features, rayDepth - 1);
                     });
-                    return avg / float(extr_glossy_filterSize);
+                    return avg * hitInfo.material.ks / float(extr_glossy_filterSize);
                 }
                 return hitInfo.material.ks * getFinalColor(scene, bvh, reflection, features, rayDepth - 1);
             }
