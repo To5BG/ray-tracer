@@ -100,7 +100,10 @@ bool intersectRayWithShape(const Sphere& sphere, Ray& ray, HitInfo& hitInfo)
     // Check if t is smaller than oldT
     bool valid = newT < ray.t;
     ray.t = valid ? newT : ray.t;
+    hitInfo.normal = -sphere.center + (ray.direction * ray.t + ray.origin);
+    hitInfo.material = sphere.material;
     return valid;
+    
 }
 
 /// Input: an axis-aligned bounding box with the following parameters: minimum coordinates box.lower and maximum coordinates box.upper
