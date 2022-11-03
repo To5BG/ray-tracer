@@ -11,6 +11,8 @@
 #endif
 #include <iostream>
 
+extern int rayDepth;
+
 glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, int rayDepth)
 {
     HitInfo hitInfo;
@@ -81,7 +83,7 @@ void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInte
                     float(y) / float(windowResolution.y) * 2.0f - 1.0f
                 };
                 const Ray cameraRay = camera.generateRay(normalizedPixelPos);
-                color = getFinalColor(scene, bvh, cameraRay, features);
+                color = getFinalColor(scene, bvh, cameraRay, features,rayDepth);
             }
 
             screen.setPixel(x, y, color);
