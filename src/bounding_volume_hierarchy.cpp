@@ -561,11 +561,18 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
         // TODO: implement here the bounding volume hierarchy traversal.
         // Please note that you should use `features.enableNormalInterp` and `features.enableTextureMapping`
         // to isolate the code that is only needed for the normal interpolation and texture mapping features.
+
         BVHNode root = nodes[0];
         float absoluteT = std::numeric_limits<float>::max();
         int finalMesh;
         int finalTriangle;
         bool hit = false;
-        return traversal(hitInfo, ray, features, root, hit, absoluteT,finalMesh, finalTriangle);
+        traversal(hitInfo, ray, features, root, hit, absoluteT,finalMesh, finalTriangle);
+        if (hit) {
+            Mesh& mesh = m_pScene->meshes[finalMesh];
+            glm::uvec3 t = mesh.triangles[finalTriangle];
+            drawTriangle(mesh.vertices[t.x], mesh.vertices[t.y], mesh.vertices[t.z]);
+        }
+        return hit;
     }
 }
