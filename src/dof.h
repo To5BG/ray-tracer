@@ -9,4 +9,4 @@ extern int extr_dof_samples;
 extern float extr_dof_aperture;
 extern float extr_dof_f;
 
-std::vector<Ray> getEyeFrame(Trackball& camera);
+std::vector<Ray> getEyeFrame(Ray& ray);

@@ -6,25 +6,34 @@
 #include "light.h"
 #include <framework/opengl_includes.h>
 
-int extr_dof_samples = 1;
-float extr_dof_aperture = 0.03f;
+int extr_dof_samples = 3;
+float extr_dof_aperture = 0.005f;
 float extr_dof_f = 5;
 std::normal_distribution<> nnormal(0.0, 1.0f);
 std::mt19937 mtGenn(std::random_device {}());
 
-std::vector<Ray> getEyeFrame(Trackball& camera)
+std::vector<Ray> getEyeFrame(Ray& ray)
 {
-    glm::vec3 w = glm::normalize(camera.lookAt());
-    glm::vec3 u = glm::normalize(camera.left());
-    glm::vec3 v = glm::normalize(camera.up());
+    // Calculate square basis
+    glm::vec3 w = glm::normalize(ray.direction);
+    // Follow textbook's suggestion - replace smallest magnitude 
+    // dimension with 1 to get a vector sufficiently different from w
+    int minTerm = fabs(w.x) <= fabs(w.y) && fabs(w.x) <= fabs(w.z) ? 0 : (fabs(w.y) <= fabs(w.x) && fabs(w.y) <= fabs(w.z) ? 1 : 2);
+    glm::vec3 t = w;
+    t[minTerm] = 1;
+    // Better performance, but edge case - if incident angle is exactly 90, it will result in a zero vector
+    // glm::vec3 u = glm::normalize(glm:cross(hitInfo.normal, w));
+    glm::vec3 u = glm::normalize(glm::cross(t, w));
+    glm::vec3 v = glm::cross(w, u);
 
     std::vector<Ray> rays;
+    rays.push_back(ray);
     // 0,0 on distribution space is 0.5, 0.5 on square's space -> offset by center
     float side = extr_dof_aperture;
     float offset = -side / 2.0f;
-    glm::vec3 focusPoint = camera.position() + w * extr_dof_f;
+    glm::vec3 focusPoint = ray.origin + w * extr_dof_f;
     for (int i = 0; i < extr_dof_samples; i++) {
-        glm::vec3 origin = camera.position() + float(offset + nnormal(mtGenn) * side) * u + float(offset + nnormal(mtGenn) * side) * v;
+        glm::vec3 origin = ray.origin + float(offset + nnormal(mtGenn) * side) * u + float(offset + nnormal(mtGenn) * side) * v;
         // Make sure perturbed ray is not below the surface its reflected from (at large sigmas and/or small incident angle)
         rays.push_back({ origin, glm::normalize(focusPoint - origin), std::numeric_limits<float>::max() });
     }

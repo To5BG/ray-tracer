@@ -5,7 +5,9 @@
 #include "bloom.h"
 #include "screen.h"
 #include "multipleRays.h"
-
+#include "gloss.h"
+#include "dof.h"
+#include "bounding_volume_hierarchy.h"
 
 // Suppress warnings in third-party code.
 #include <framework/disable_all_warnings.h>
@@ -32,8 +34,6 @@ DISABLE_WARNINGS_POP()
 #include <string>
 #include <thread>
 #include <variant>
-#include <bounding_volume_hierarchy.h>
-#include <gloss.h>
 
 // This is the main application. The code in here does not need to be modified.
 enum class ViewMode {
@@ -179,6 +179,12 @@ int main(int argc, char** argv)
                 }
                 ImGui::Checkbox("Transparency", &config.features.extra.enableTransparency);
                 ImGui::Checkbox("Depth of field", &config.features.extra.enableDepthOfField);
+                if (config.features.extra.enableDepthOfField) 
+                {
+                    ImGui::SliderInt("Depth of field: Number of samples", &extr_dof_samples, 1, 128);
+                    ImGui::SliderFloat("Depth of field: Aperture of camera", &extr_dof_aperture, 0.0f, 5.0f);
+                    ImGui::SliderFloat("Depth of field: Focal length of camera", &extr_dof_f, 0.0f, 10.0f);
+                }
             }
             ImGui::Separator();
 
