@@ -31,7 +31,7 @@ add_library(FinalProjectLib
 	"src/bloom.cpp"
 	"src/gloss.cpp"
 	"src/multipleRays.cpp"
-)
+	"src/dof.cpp")
 
 if (REFERENCE_MODE)
 	target_sources(FinalProjectLib PRIVATE
@@ -65,7 +65,7 @@ set_project_warnings(FinalProjectLib)
 target_compile_definitions(FinalProjectLib PUBLIC
 	"-DDATA_DIR=\"${CMAKE_CURRENT_LIST_DIR}/data/\"")
 
-add_executable(FinalProject	"src/main.cpp")
+add_executable(FinalProject	"src/main.cpp" "src/dof.cpp")
 target_link_libraries(FinalProject PUBLIC FinalProjectLib)
 target_compile_features(FinalProject PUBLIC cxx_std_20)
 enable_sanitizers(FinalProject)

@@ -6,6 +6,7 @@
 #include "multipleRays.h"
 #include <framework/trackball.h>
 #include "gloss.h"
+#include "dof.h"
 #ifdef NDEBUG
 #include <omp.h>
 #endif
