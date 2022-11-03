@@ -174,7 +174,7 @@ int main(int argc, char** argv)
                 ImGui::Checkbox("Glossy reflections", &config.features.extra.enableGlossyReflection);
                 if (config.features.extra.enableGlossyReflection) 
                 { 
-                    ImGui::SliderInt("Glossy reflection filter size", &extr_glossy_filterSize, 1, 1000);
+                    ImGui::SliderInt("Glossy reflection filter size", &extr_glossy_filterSize, 1, 2048);
                     ImGui::SliderFloat("Glossy reflection sigma", &extr_glossy_sigma, 0.0f, 5.0f);
                 }
                 ImGui::Checkbox("Transparency", &config.features.extra.enableTransparency);
