@@ -29,8 +29,8 @@ add_library(FinalProjectLib
 	"src/interpolate.cpp"
 	"src/render.cpp"
 	"src/bloom.cpp"
+	"src/gloss.cpp"
 	"src/multipleRays.cpp"
-
 )
 
 if (REFERENCE_MODE)
