@@ -23,6 +23,9 @@ enum SceneType {
     Dragon,
     Spheres,
     Custom,
+    QuadTextured,
+    TransparentCubes,
+    TransparentCornell,
 };
 
 struct Scene {

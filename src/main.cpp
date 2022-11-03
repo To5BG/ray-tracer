@@ -133,6 +133,9 @@ int main(int argc, char** argv)
                     "Dragon",
                     /* "AABBs",*/ "Spheres", /*"Mixed",*/
                     "Custom",
+                    "Quad (textured)",
+                    "Cubes (transparent)",
+                    "Cornell (transparent)",
                 };
                 if (ImGui::Combo("Scenes", reinterpret_cast<int*>(&sceneType), items.data(), int(items.size()))) {
                     optDebugRay.reset();
