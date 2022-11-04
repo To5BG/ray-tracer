@@ -14,19 +14,23 @@ glm::vec3 environment_lookup(glm::vec3 v)
     // Go through each box to figure out for which box to take coords
     if (absV.x >= absV.y && absV.x >= absV.z) {
         // multiplied by two for simpler calculations later
+        // save amp for current axis
         maxA = 2 * absV.x;
         ut = (v.x >= 0) ? -v.z : v.z;
         vt = -v.y;
+        // 0 - left, 1 - right
         idx = (v.x < 0);
     } else if (absV.y >= absV.z) {
         maxA = 2 * absV.y;
         ut = v.x;
         vt = (v.y >= 0) ? v.z : -v.z;
+        // 2 - top, 3 - bottom
         idx = (v.y < 0) + 2;
     } else {
         maxA = 2 * absV.z;
         ut = (v.z >= 0) ? v.x : -v.x;
         vt = -v.y;
+        // 4 - front, 5 - back
         idx = (v.z < 0) + 4;
     }
 
