@@ -191,7 +191,7 @@ int main(int argc, char** argv)
                     dof_hasChanged |= ImGui::Checkbox("Draw random rays", &draw_random_rays);
                     if (dof_hasChanged && optDebugRay.has_value()) {
                         dof_hasChanged = false;
-                        dofRays = getEyeFrame(optDebugRay.value());
+                        dofRays = getEyeFrame(*optDebugRay);
                     }
                 }
             }
@@ -404,11 +404,11 @@ int main(int argc, char** argv)
 
                     if (config.features.extra.enableDepthOfField) {
                         for (Ray& r : camFrame) {
-                            drawRay(r, { 0, 1, 0 });
+                            drawRay(r, { 0.0f, 1.0f, 0.0f });
                         }
                         if (draw_random_rays) {
-                            for (Ray ray : dofRays) 
-                                (void)getFinalColor(scene, bvh, ray, config.features);
+                            for (Ray& ray : dofRays) 
+                                getFinalColor(scene, bvh, ray, config.features);
                         }
                     }
                     enableDebugDraw = false;
