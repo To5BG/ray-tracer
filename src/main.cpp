@@ -8,6 +8,7 @@
 #include "gloss.h"
 #include "dof.h"
 #include "bounding_volume_hierarchy.h"
+#include "environment_mapping.h"
 
 // Suppress warnings in third-party code.
 #include <framework/disable_all_warnings.h>
@@ -177,6 +178,10 @@ int main(int argc, char** argv)
 
             if (ImGui::CollapsingHeader("Extra Features")) {
                 ImGui::Checkbox("Environment mapping", &config.features.extra.enableEnvironmentMapping);
+                if (config.features.extra.enableEnvironmentMapping) {
+                    ImGui::Checkbox("Show skybox", &extr_enabledSkyBox);
+                    ImGui::Checkbox("Show reflection map", &extr_enabledReflMap);
+                }
                 ImGui::Checkbox("BVH SAH binning", &enabledSAHBinning);
                 if (enabledSAHBinning)
                     ImGui::SliderInt("BVH Bin Count", &bvhSahBinCount, 3, 4096);
