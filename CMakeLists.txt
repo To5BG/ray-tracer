@@ -31,7 +31,8 @@ add_library(FinalProjectLib
 	"src/bloom.cpp"
 	"src/gloss.cpp"
 	"src/multipleRays.cpp"
-	"src/dof.cpp")
+	"src/dof.cpp" 
+	"src/environment_mapping.cpp")
 
 if (REFERENCE_MODE)
 	target_sources(FinalProjectLib PRIVATE
