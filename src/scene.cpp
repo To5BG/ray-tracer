@@ -86,6 +86,24 @@ Scene loadScenePrebuilt(SceneType type, const std::filesystem::path& dataDir)
         // Spherical light: position, radius, color
         // scene.lights.push_back(SphericalLight{ glm::vec3(0, 1.5f, 0), 0.2f, glm::vec3(1) });
     } break;
+    case QuadTextured: {
+        // Load a 3D model of a textured quad
+        auto subMeshes = loadMesh(dataDir / "quadtextured.obj", true);
+        std::move(std::begin(subMeshes), std::end(subMeshes), std::back_inserter(scene.meshes));
+        scene.lights.emplace_back(PointLight { glm::vec3(-0.3f, 0.58f, 0), glm::vec3(1) }); 
+    } break;
+    case TransparentCubes: {
+        // Load a 3D model of cubes with one transparent cube
+        auto subMeshes = loadMesh(dataDir / "transparent-cubes.obj", true);
+        std::move(std::begin(subMeshes), std::end(subMeshes), std::back_inserter(scene.meshes));
+        scene.lights.emplace_back(PointLight { glm::vec3(-0.8f, 0.58f, 0), glm::vec3(1) }); 
+    } break;
+    case TransparentCornell: {
+        // Load a 3D model of a cornell box with a transparent cube
+        auto subMeshes = loadMesh(dataDir / "cornelltransparent.obj", true);
+        std::move(std::begin(subMeshes), std::end(subMeshes), std::back_inserter(scene.meshes));
+        scene.lights.emplace_back(PointLight { glm::vec3(0, 0.58f, 0), glm::vec3(1) }); // Light at the top of the box
+    } break;
     };
 
     return scene;
