@@ -43,6 +43,7 @@ enum class ViewMode {
 
 int debugBVHLeafId = 0;
 bool intersectedButNotTraversed = false;
+int rayDepth = 1;
 static void setOpenGLMatrices(const Trackball& camera);
 static void drawLightsOpenGL(const Scene& scene, const Trackball& camera, int selectedLight);
 static void drawSceneOpenGL(const Scene& scene);
@@ -137,6 +138,9 @@ int main(int argc, char** argv)
                     "Dragon",
                     /* "AABBs",*/ "Spheres", /*"Mixed",*/
                     "Custom",
+                    "Quad (textured)",
+                    "Cubes (transparent)",
+                    "Cornell (transparent)",
                 };
                 if (ImGui::Combo("Scenes", reinterpret_cast<int*>(&sceneType), items.data(), int(items.size()))) {
                     optDebugRay.reset();
@@ -248,6 +252,8 @@ int main(int argc, char** argv)
                 ImGui::Checkbox("BVH SAH Show savings", &debugSAH);
                 ImGui::Checkbox("Intersected but not traversed", &debugTraversal);
                 intersectedButNotTraversed = debugTraversal;
+                if (config.features.enableRecursive)
+                    ImGui::SliderInt("Ray Depth", &rayDepth, 0, 7);
             }
 
             ImGui::Spacing();

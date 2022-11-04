@@ -12,6 +12,8 @@
 #endif
 #include <iostream>
 
+extern int rayDepth;
+
 glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, int rayDepth)
 {
     HitInfo hitInfo;
