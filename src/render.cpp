@@ -86,13 +86,19 @@ void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInte
                 Ray cameraRay = camera.generateRay(normalizedPixelPos);
                 // generate rays and average final color
                 if (features.extra.enableDepthOfField) {
-                    std::vector<Ray> rays = getEyeFrame(cameraRay, camera);
-                    rays.push_back(cameraRay);
-                    //rays.push_back(cameraRay);
-                    for (Ray r : rays) {
-                        color += getFinalColor(scene, bvh, r, features);
+                    Ray copy = { cameraRay.origin, cameraRay.direction, cameraRay.t };
+                    HitInfo h = {};
+                    bvh.intersect(copy, h, features);
+                    color = getFinalColor(scene, bvh, cameraRay, features);
+                    if (copy.t != std::numeric_limits<float>::max() && fabs(extr_dof_f - glm::length(copy.direction) * copy.t) > extr_dof)
+                    {
+                        std::vector<Ray> rays = getEyeFrame(cameraRay, camera);
+                        // rays.push_back(cameraRay);
+                        for (Ray r : rays) {
+                            color += getFinalColor(scene, bvh, r, features);
+                        }
+                        color /= float(rays.size() + 1);
                     }
-                    color /= float(rays.size());
                 } else
                     color = getFinalColor(scene, bvh, cameraRay, features);
             }

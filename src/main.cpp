@@ -80,6 +80,9 @@ int main(int argc, char** argv)
         int bvhSahBinCount = extr_sah_bins;
         bool dof_hasChanged = false;
 
+        glm::vec3 cachedDOFx = {};
+        glm::vec3 cachedDOFy = {};
+        bool enableDOF = false;
         bool debugSAH = extr_debugSAH;
         bool debugBVHLevel { false };
         bool debugBVHLeaf { false };
@@ -103,6 +106,8 @@ int main(int argc, char** argv)
                         (void)calculateColor(scene, camera, bvh, screen, config.features, window.getCursorPos().x, window.getCursorPos().y, window.getWindowSize(), 1);
                     if (config.features.extra.enableDepthOfField) {
                         // generate rays and average final color
+                        cachedDOFx = camera.left();
+                        cachedDOFy = camera.up();
                         dofRays = getEyeFrame(optDebugRay.value(), camera);
                     }
                 } break;
@@ -189,10 +194,13 @@ int main(int argc, char** argv)
                 ImGui::Checkbox("Depth of field", &config.features.extra.enableDepthOfField);
                 if (config.features.extra.enableDepthOfField) 
                 {
-                    dof_hasChanged |= ImGui::SliderInt("Depth of field: Number of samples", &extr_dof_samples, 1, 128);
-                    dof_hasChanged |= ImGui::SliderFloat("Depth of field: Aperture of camera", &extr_dof_aperture, 1.0f, 22.0f);
-                    dof_hasChanged |= ImGui::SliderFloat("Depth of field: Focal length of camera", &extr_dof_f, 0.0f, 5.0f);
+                    dof_hasChanged |= ImGui::SliderInt("Depth of field: Number of samples", &extr_dof_samples, 1, 512);
+                    dof_hasChanged |= ImGui::SliderFloat("Depth of field: Aperture of camera", &extr_dof_aperture, 1.0f, 5.0f);
+                    dof_hasChanged |= ImGui::SliderFloat("Depth of field: Focal length of camera", &extr_dof_f, 0.0f, 15.0f);
                     dof_hasChanged |= ImGui::Checkbox("Draw random rays", &draw_random_rays);
+                    ImGui::Checkbox("Enable offset DOF", &enableDOF);
+                    if (enableDOF)
+                        ImGui::SliderFloat("Value of offset DOF", &extr_dof, 0.0f, extr_dof_f / 2.0f);
                     if (dof_hasChanged && optDebugRay.has_value()) {
                         dof_hasChanged = false;
                         dofRays = getEyeFrame(*optDebugRay, camera);
@@ -416,6 +424,19 @@ int main(int argc, char** argv)
                             for (Ray& ray : dofRays) 
                                 getFinalColor(scene, bvh, ray, config.features);
                         }
+                    }
+
+                    if (enableDOF && optDebugRay.has_value()) {
+                        Ray r = optDebugRay.value();
+                        drawRay({ r.origin + r.direction * (extr_dof_f - extr_dof) + (- cachedDOFx - cachedDOFy) / 2.0f, cachedDOFx, 1 }, glm::vec3 { 1.0f });
+                        drawRay({ r.origin + r.direction * (extr_dof_f - extr_dof) + (- cachedDOFx + cachedDOFy) / 2.0f, -cachedDOFy, 1 }, glm::vec3 { 1.0f });
+                        drawRay({ r.origin + r.direction * (extr_dof_f - extr_dof) + (cachedDOFx - cachedDOFy) / 2.0f, cachedDOFy, 1 }, glm::vec3 { 1.0f });
+                        drawRay({ r.origin + r.direction * (extr_dof_f - extr_dof) + (cachedDOFx + cachedDOFy) / 2.0f, -cachedDOFx, 1 }, glm::vec3 { 1.0f });
+
+                        drawRay({ r.origin + r.direction * (extr_dof_f + extr_dof) + (- cachedDOFx - cachedDOFy) / 2.0f, cachedDOFx, 1 }, glm::vec3 { 1.0f });
+                        drawRay({ r.origin + r.direction * (extr_dof_f + extr_dof) + (- cachedDOFx + cachedDOFy) / 2.0f, -cachedDOFy, 1 }, glm::vec3 { 1.0f });
+                        drawRay({ r.origin + r.direction * (extr_dof_f + extr_dof) + (cachedDOFx - cachedDOFy) / 2.0f, cachedDOFy, 1 }, glm::vec3 { 1.0f });
+                        drawRay({ r.origin + r.direction * (extr_dof_f + extr_dof) + (cachedDOFx + cachedDOFy) / 2.0f, -cachedDOFx, 1 }, glm::vec3 { 1.0f });
                     }
                     enableDebugDraw = false;
                 }
