@@ -77,6 +77,7 @@ int main(int argc, char** argv)
         int bvhDebugLeaf = 0;
         int bvhDebugMaxLevel = extr_max_level;
         int bvhSahBinCount = extr_sah_bins;
+        bool dof_hasChanged = false;
 
         bool debugSAH = extr_debugSAH;
         bool debugBVHLevel { false };
@@ -101,9 +102,7 @@ int main(int argc, char** argv)
                         (void)calculateColor(scene, camera, bvh, screen, config.features, window.getCursorPos().x, window.getCursorPos().y, window.getWindowSize(), 1);
                     if (config.features.extra.enableDepthOfField) {
                         // generate rays and average final color
-                        DOFrays = getEyeFrame(optDebugRay.value());
-                       // CamRays.clear();
-
+                        dofRays = getEyeFrame(optDebugRay.value());
                     }
                 } break;
                 case GLFW_KEY_A: {
@@ -186,11 +185,14 @@ int main(int argc, char** argv)
                 ImGui::Checkbox("Depth of field", &config.features.extra.enableDepthOfField);
                 if (config.features.extra.enableDepthOfField) 
                 {
-                    ImGui::SliderInt("Depth of field: Number of samples", &extr_dof_samples, 1, 128);
-                    ImGui::SliderFloat("Depth of field: Aperture of camera", &extr_dof_aperture, 0.0f, 5.0f);
-                    ImGui::SliderFloat("Depth of field: Focal length of camera", &extr_dof_f, 0.0f, 10.0f);
-                    ImGui::Checkbox("Draw random rays", &draw_random_rays);
-
+                    dof_hasChanged |= ImGui::SliderInt("Depth of field: Number of samples", &extr_dof_samples, 1, 128);
+                    dof_hasChanged |= ImGui::SliderFloat("Depth of field: Aperture of camera", &extr_dof_aperture, 1.0f, 22.0f);
+                    dof_hasChanged |= ImGui::SliderFloat("Depth of field: Focal length of camera", &extr_dof_f, 0.0f, 5.0f);
+                    dof_hasChanged |= ImGui::Checkbox("Draw random rays", &draw_random_rays);
+                    if (dof_hasChanged && optDebugRay.has_value()) {
+                        dof_hasChanged = false;
+                        dofRays = getEyeFrame(optDebugRay.value());
+                    }
                 }
             }
             ImGui::Separator();
@@ -395,27 +397,20 @@ int main(int argc, char** argv)
 
                     if (config.features.extra.enableMultipleRaysPerPixel) {
                         // draw each ray if multiple rays per pixel
-                        for (Ray ray : rays) {
+                        for (Ray ray : rays)
                             (void)getFinalColor(scene, bvh, ray, config.features);
-                        }
-
-                    } else {                    
-                    (void)getFinalColor(scene, bvh, *optDebugRay, config.features);
-                    }
+                    } else
+                        (void)getFinalColor(scene, bvh, *optDebugRay, config.features);
 
                     if (config.features.extra.enableDepthOfField) {
-
-                        for (Ray r : CamRays) {
+                        for (Ray& r : camFrame) {
                             drawRay(r, { 0, 1, 0 });
                         }
-
                         if (draw_random_rays) {
-                            for (Ray ray : DOFrays) {
+                            for (Ray ray : dofRays) 
                                 (void)getFinalColor(scene, bvh, ray, config.features);
-                            }
                         }
                     }
-
                     enableDebugDraw = false;
                 }
                 glPopAttrib();

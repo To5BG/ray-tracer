@@ -7,14 +7,14 @@
 #include <framework/opengl_includes.h>
 
 int extr_dof_samples = 3;
-float extr_dof_aperture = 0.005f;
-float extr_dof_f = 5;
+float extr_dof_aperture = 1.4f;
+float extr_dof_f = 2.5f;
 bool draw_random_rays = true;
 std::normal_distribution<> nnormal(0.0, 1.0f);
 std::mt19937 mtGenn(std::random_device {}());
 
-std::vector<Ray> DOFrays = {};
-std::vector<Ray> CamRays = {};
+std::vector<Ray> dofRays;
+std::vector<Ray> camFrame;
 
 std::vector<Ray> getEyeFrame(Ray& ray)
 {
@@ -32,21 +32,20 @@ std::vector<Ray> getEyeFrame(Ray& ray)
 
     std::vector<Ray> rays;
     rays.push_back(ray);
+    float side = extr_dof_f / extr_dof_aperture;
     // 0,0 on distribution space is 0.5, 0.5 on square's space -> offset by center
-    float side = extr_dof_aperture / 100.0f;
     float offset = -side / 2.0f;
     glm::vec3 focusPoint = ray.origin + w * extr_dof_f;
 
-    CamRays.clear();
-    CamRays.push_back(Ray { ray.origin + glm::vec3 { extr_dof_aperture, extr_dof_aperture, 0 }, focusPoint - ray.origin, std::numeric_limits<float>::max() });
-    CamRays.push_back(Ray { ray.origin + glm::vec3 { -extr_dof_aperture, extr_dof_aperture, 0 }, focusPoint - ray.origin, std::numeric_limits<float>::max() });
-    CamRays.push_back(Ray { ray.origin + glm::vec3 { -extr_dof_aperture, -extr_dof_aperture, 0 }, focusPoint - ray.origin, std::numeric_limits<float>::max() });
-    CamRays.push_back(Ray { ray.origin + glm::vec3 { extr_dof_aperture, -extr_dof_aperture, 0 }, focusPoint - ray.origin, std::numeric_limits<float>::max() });
+    camFrame = std::vector<Ray> {};
+    camFrame.push_back(Ray { ray.origin + side * (u + v), glm::normalize(focusPoint - ray.origin - side * (u + v)) });
+    camFrame.push_back(Ray { ray.origin + side * (v - u), glm::normalize(focusPoint - ray.origin - side * (v - u)) });
+    camFrame.push_back(Ray { ray.origin + side * (-u - v), glm::normalize(focusPoint - ray.origin - side * (-u - v)) });
+    camFrame.push_back(Ray { ray.origin + side * (u - v), glm::normalize(focusPoint - ray.origin - side * (u - v)) });
 
     for (int i = 0; i < extr_dof_samples; i++) {
         glm::vec3 origin = ray.origin + float(offset + nnormal(mtGenn) * side) * u + float(offset + nnormal(mtGenn) * side) * v;
-        // Make sure perturbed ray is not below the surface its reflected from (at large sigmas and/or small incident angle)
-        rays.push_back({ origin, glm::normalize(focusPoint - origin), std::numeric_limits<float>::max() });
+        rays.push_back({ origin, glm::normalize(focusPoint - origin) });
     }
     return rays;
 }

@@ -10,8 +10,8 @@ extern float extr_dof_aperture;
 extern float extr_dof_f;
 extern bool draw_random_rays;
 
-extern std::vector<Ray> DOFrays;
-extern std::vector<Ray> CamRays;
+extern std::vector<Ray> dofRays;
+extern std::vector<Ray> camFrame;
 
 std::vector<Ray> getEyeFrame(Ray& ray);
 
