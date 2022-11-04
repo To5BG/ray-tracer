@@ -33,7 +33,7 @@ std::vector<Ray> getEyeFrame(Ray& ray, const Trackball& camera)
     glm::vec3 v = camera.left();
 
     std::vector<Ray> rays;
-    float side = extr_dof_f / (extr_dof_aperture * 10.0f);
+    float side = extr_dof_f / (extr_dof_aperture * 6.0f);
     // 0,0 on distribution space is 0.5, 0.5 on square's space -> offset by center
     float offset = -side / 2.0f;
     glm::vec3 focusPoint = ray.origin + w * extr_dof_f;
