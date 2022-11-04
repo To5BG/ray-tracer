@@ -438,47 +438,6 @@ bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Featur
     }
 } 
 
-    //Non-recursive
-
-    //bool hit = false;
-    //BVHNode node;
-    //while (!stack.empty()) { // If stack is not empty, get the top element
-    //    node = stack.top();
-    //    stack.pop();
-    //
-    //if (node.isLeafNode) { // If leaf
-    //    int i = 0;
-    //    while (i < node.ids.size()) { // For each triangle mesh pair in ids
-    //        int triangleID = node.ids[i]; // Get triangle ID
-    //        int meshID = node.ids[i + 1]; // Get mesh ID
-    //        Mesh mesh = m_pScene->meshes[meshID]; // Get mesh
-    //        glm::uvec3 triangle = mesh.triangles[triangleID]; // Get triangle
-    //        const auto v0 = mesh.vertices[triangle[0]];
-    //        const auto v1 = mesh.vertices[triangle[1]];
-    //        const auto v2 = mesh.vertices[triangle[2]];
-    //        if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo)) {
-    //            hitInfo.material = mesh.material;
-    //            hit = true;
-    //        }
-    //        i += 2; // Go to next pair
-    //    }
-    //} else // If internal
-    //{
-    //    int left = node.ids[0];
-    //    int right = node.ids[1];
-    //    BVHNode leftNode = nodes[left];
-    //    BVHNode rightNode = nodes[right];
-
-    //    if (intersectRayWithShape(leftNode.box, ray)) { // If left box is intersected, add to stack
-    //        stack.push(leftNode);
-    //    }
-    //    if (intersectRayWithShape(rightNode.box, ray)) { // If right box is intersected, add to stack
-    //        stack.push(rightNode);
-    //    }
-    //}
-
-    //}
-    //return hit;
 
 
 
