@@ -28,7 +28,9 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
             Ray reflection = computeReflectionRay(ray, hitInfo);
             drawRay(reflection, glm::vec3 { 1.0f });
             glm::vec3 texs = environment_lookup(glm::normalize(ray.direction));
-            return acquireTexelClamp(scene.skybox[texs[2]], { texs[0], texs[1] }, features);
+            glm::vec3 res = acquireTexelClamp(scene.skybox[texs[2]], { texs[0], texs[1] }, features);
+            drawRay(ray, res);
+            return res;
         }
 
         if (features.extra.enableTransparency) {
@@ -65,12 +67,14 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
         return Lo;
     } 
     
-    // Draw a red debug ray if the ray missed.
-    drawRay(ray, glm::vec3(1.0f, 0.0f, 0.0f));
     if (features.extra.enableEnvironmentMapping && extr_enabledSkyBox) {
         glm::vec3 texs = environment_lookup(glm::normalize(ray.direction));
-        return acquireTexelClamp(scene.skybox[texs[2]], { texs[0], texs[1] }, features);
+        glm::vec3 res = acquireTexelClamp(scene.skybox[texs[2]], { texs[0], texs[1] }, features);
+        drawRay(ray, res);
+        return res;
     }
+    // Draw a red debug ray if the ray missed.
+    drawRay(ray, glm::vec3(1.0f, 0.0f, 0.0f));
     // Set the color of the pixel to black if the ray misses.
     return glm::vec3(0.0f);
 }
