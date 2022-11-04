@@ -99,7 +99,12 @@ int main(int argc, char** argv)
                     // if multiple rays per pixel, draw all of them and call the function
                     if (config.features.extra.enableMultipleRaysPerPixel) 
                         (void)calculateColor(scene, camera, bvh, screen, config.features, window.getCursorPos().x, window.getCursorPos().y, window.getWindowSize(), 1);
+                    if (config.features.extra.enableDepthOfField) {
+                        // generate rays and average final color
+                        DOFrays = getEyeFrame(optDebugRay.value());
+                       // CamRays.clear();
 
+                    }
                 } break;
                 case GLFW_KEY_A: {
                     debugBVHLeafId++;
@@ -184,6 +189,8 @@ int main(int argc, char** argv)
                     ImGui::SliderInt("Depth of field: Number of samples", &extr_dof_samples, 1, 128);
                     ImGui::SliderFloat("Depth of field: Aperture of camera", &extr_dof_aperture, 0.0f, 5.0f);
                     ImGui::SliderFloat("Depth of field: Focal length of camera", &extr_dof_f, 0.0f, 10.0f);
+                    ImGui::Checkbox("Draw random rays", &draw_random_rays);
+
                 }
             }
             ImGui::Separator();
@@ -394,6 +401,19 @@ int main(int argc, char** argv)
 
                     } else {                    
                     (void)getFinalColor(scene, bvh, *optDebugRay, config.features);
+                    }
+
+                    if (config.features.extra.enableDepthOfField) {
+
+                        for (Ray r : CamRays) {
+                            drawRay(r, { 0, 1, 0 });
+                        }
+
+                        if (draw_random_rays) {
+                            for (Ray ray : DOFrays) {
+                                (void)getFinalColor(scene, bvh, ray, config.features);
+                            }
+                        }
                     }
 
                     enableDebugDraw = false;
