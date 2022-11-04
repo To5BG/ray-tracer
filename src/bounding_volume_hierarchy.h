@@ -76,7 +76,7 @@ public:
 
     // Helper method that facilitates the recursive traversal of the BVH
     bool traversal(HitInfo& hitInfo, Ray& ray, const Features& features, BVHNode& node, bool& hit, float& absoluteT
-    ,int& finalMesh, int& finalTriangle) const;
+    ,int& finalMesh, int& finalTriangle,bool& sphereInt) const;
       
 
 private:
