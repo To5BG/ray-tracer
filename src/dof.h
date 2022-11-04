@@ -13,5 +13,5 @@ extern bool draw_random_rays;
 extern std::vector<Ray> dofRays;
 extern std::vector<Ray> camFrame;
 
-std::vector<Ray> getEyeFrame(Ray& ray);
+std::vector<Ray> getEyeFrame(Ray& ray, const Trackball& camera);
 

@@ -84,7 +84,7 @@ void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInte
                 Ray cameraRay = camera.generateRay(normalizedPixelPos);
                 // generate rays and average final color
                 if (features.extra.enableDepthOfField) {
-                    std::vector<Ray> rays = getEyeFrame(cameraRay);
+                    std::vector<Ray> rays = getEyeFrame(cameraRay, camera);
                     rays.push_back(cameraRay);
                     //rays.push_back(cameraRay);
                     for (Ray r : rays) {

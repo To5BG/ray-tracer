@@ -102,7 +102,7 @@ int main(int argc, char** argv)
                         (void)calculateColor(scene, camera, bvh, screen, config.features, window.getCursorPos().x, window.getCursorPos().y, window.getWindowSize(), 1);
                     if (config.features.extra.enableDepthOfField) {
                         // generate rays and average final color
-                        dofRays = getEyeFrame(optDebugRay.value());
+                        dofRays = getEyeFrame(optDebugRay.value(), camera);
                     }
                 } break;
                 case GLFW_KEY_A: {
@@ -191,7 +191,7 @@ int main(int argc, char** argv)
                     dof_hasChanged |= ImGui::Checkbox("Draw random rays", &draw_random_rays);
                     if (dof_hasChanged && optDebugRay.has_value()) {
                         dof_hasChanged = false;
-                        dofRays = getEyeFrame(*optDebugRay);
+                        dofRays = getEyeFrame(*optDebugRay, camera);
                     }
                 }
             }

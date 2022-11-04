@@ -16,19 +16,19 @@ std::mt19937 mtGenn(std::random_device {}());
 std::vector<Ray> dofRays;
 std::vector<Ray> camFrame = std::vector<Ray>(4);
 
-std::vector<Ray> getEyeFrame(Ray& ray)
+std::vector<Ray> getEyeFrame(Ray& ray, const Trackball& camera)
 {
     // Calculate square basis
     glm::vec3 w = glm::normalize(ray.direction);
     // Follow textbook's suggestion - replace smallest magnitude 
     // dimension with 1 to get a vector sufficiently different from w
-    int minTerm = fabs(w.x) <= fabs(w.y) && fabs(w.x) <= fabs(w.z) ? 0 : (fabs(w.y) <= fabs(w.x) && fabs(w.y) <= fabs(w.z) ? 1 : 2);
-    glm::vec3 t = w;
-    t[minTerm] = 1;
+    //int minTerm = fabs(w.x) <= fabs(w.y) && fabs(w.x) <= fabs(w.z) ? 0 : (fabs(w.y) <= fabs(w.x) && fabs(w.y) <= fabs(w.z) ? 1 : 2);
+    //glm::vec3 t = w;
+    //t[minTerm] = 1;
     // Better performance, but edge case - if incident angle is exactly 90, it will result in a zero vector
     // glm::vec3 u = glm::normalize(glm:cross(hitInfo.normal, w));
-    glm::vec3 u = glm::normalize(glm::cross(t, w));
-    glm::vec3 v = glm::cross(w, u);
+    glm::vec3 u = camera.up();
+    glm::vec3 v = camera.left();
 
     std::vector<Ray> rays;
     float side = extr_dof_f / extr_dof_aperture;
