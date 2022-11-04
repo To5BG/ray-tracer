@@ -290,7 +290,7 @@ void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
 }
 
 
-bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Features& features, BVHNode& node, bool& hit, float& absoluteT, int& finalMesh, int& finalTriangle) const
+bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Features& features, BVHNode& node, bool& hit, float& absoluteT, int& finalMesh, int& finalTriangle, bool& sphereInt) const
 {
     float oldT = ray.t; // ray distance
     if (node.level == 0 && !intersectRayWithShape(node.box, ray)) {
@@ -328,64 +328,74 @@ bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Featur
         while (i < node.ids.size()) { // For each triangle mesh pair in ids
             int triangleID = node.ids[i]; // Get triangle ID
             int meshID = node.ids[i + 1]; // Get mesh ID
-            Mesh mesh = m_pScene->meshes[meshID]; // Get mesh
-            glm::uvec3 triangle = mesh.triangles[triangleID]; // Get triangle
-            const auto v0 = mesh.vertices[triangle[0]];
-            const auto v1 = mesh.vertices[triangle[1]];
-            const auto v2 = mesh.vertices[triangle[2]];
-            if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo)) {
-                if (ray.t < absoluteT) {
-                    absoluteT = ray.t;
+            if (meshID == -1) { 
+                 Sphere& sphere = m_pScene->spheres[triangleID];
+                 if (intersectRayWithShape(sphere, ray, hitInfo)) {
+                     hitInfo.material = sphere.material;
+                     hit = true;
+                     sphereInt = true;
                 }
-                finalMesh = meshID;
-                finalTriangle = triangleID;
+            } else {
+                Mesh mesh = m_pScene->meshes[meshID]; // Get mesh
+                glm::uvec3 triangle = mesh.triangles[triangleID]; // Get triangle
+                const auto v0 = mesh.vertices[triangle[0]];
+                const auto v1 = mesh.vertices[triangle[1]];
+                const auto v2 = mesh.vertices[triangle[2]];
+                if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo)) {
+                    if (ray.t < absoluteT) {
+                        absoluteT = ray.t;
+                    }
+                    finalMesh = meshID;
+                    finalTriangle = triangleID;
 
-                if (features.enableTextureMapping) {
-                    if (mesh.material.kdTexture != nullptr) {
-                        glm::vec2 texCoords = interpolateTexCoord(v0.texCoord, v1.texCoord, v2.texCoord, hitInfo.barycentricCoord);
-                        glm::vec3 tex = acquireTexel(*mesh.material.kdTexture, texCoords, features);
-                        hitInfo.material = mesh.material;
-                        hitInfo.material.kd = tex;
-                        hit = true;
+                    if (features.enableTextureMapping) {
+                        if (mesh.material.kdTexture != nullptr) {
+                            glm::vec2 texCoords = interpolateTexCoord(v0.texCoord, v1.texCoord, v2.texCoord, hitInfo.barycentricCoord);
+                            glm::vec3 tex = acquireTexel(*mesh.material.kdTexture, texCoords, features);
+                            hitInfo.material = mesh.material;
+                            hitInfo.material.kd = tex;
+                            hit = true;
+                        } else {
+                            hitInfo.material = mesh.material;
+                            hit = true;
+                        }
                     } else {
+
                         hitInfo.material = mesh.material;
                         hit = true;
                     }
-                } else {
 
-                    hitInfo.material = mesh.material;
-                    hit = true;
-                }
+                    if (features.enableNormalInterp) {
 
-                if (features.enableNormalInterp) {
-
-                    if (smallestT > ray.t) {
-                        // update all debug rays and toggle the foundIntersection boolean
-                        foundIntersection = true;
-                        smallestT = ray.t;
-                        v0Debug = v0;
-                        v1Debug = v1;
-                        v2Debug = v2;
+                        if (smallestT > ray.t) {
+                            // update all debug rays and toggle the foundIntersection boolean
+                            foundIntersection = true;
+                            smallestT = ray.t;
+                            v0Debug = v0;
+                            v1Debug = v1;
+                            v2Debug = v2;
+                        }
                     }
                 }
-            }
-            if (features.enableNormalInterp && foundIntersection) {
-                glm::vec3 point = ray.origin + ray.direction * ray.t;
-                float length = 0.5f;
+                if (features.enableNormalInterp && foundIntersection) {
+                    glm::vec3 point = ray.origin + ray.direction * ray.t;
+                    float length = 0.5f;
 
-                // draw the rays of each vertex of the triangle
-                drawRay(Ray { v0Debug.position, v0Debug.normal, length });
-                drawRay(Ray { v1Debug.position, v1Debug.normal, length });
-                drawRay(Ray { v2Debug.position, v2Debug.normal, length });
+                    // draw the rays of each vertex of the triangle
+                    drawRay(Ray { v0Debug.position, v0Debug.normal, length });
+                    drawRay(Ray { v1Debug.position, v1Debug.normal, length });
+                    drawRay(Ray { v2Debug.position, v2Debug.normal, length });
 
-                // get the interpolated normal
-                glm::vec3 color = glm::vec3 { 0.0f, 1.0f, 0.0f };
-                glm::vec3 barycentric = computeBarycentricCoord(v0Debug.position, v1Debug.position, v2Debug.position, point);
-                glm::vec3 interpolatedNormal = interpolateNormal(v0Debug.normal, v1Debug.normal, v2Debug.normal, barycentric);
-                hitInfo.normal = interpolatedNormal;
-                // draw the interpolated ray
-                drawRay(Ray { point, interpolatedNormal, length }, color);
+                    // get the interpolated normal
+                    glm::vec3 color = glm::vec3 { 0.0f, 1.0f, 0.0f };
+                    glm::vec3 barycentric = computeBarycentricCoord(v0Debug.position, v1Debug.position, v2Debug.position, point);
+                    glm::vec3 interpolatedNormal = interpolateNormal(v0Debug.normal, v1Debug.normal, v2Debug.normal, barycentric);
+                    hitInfo.normal = interpolatedNormal;
+                    // draw the interpolated ray
+                    drawRay(Ray { point, interpolatedNormal, length }, color);
+                }
             }
+            
             i += 2; // Go to next pair
         }
 
@@ -416,20 +426,20 @@ bool BoundingVolumeHierarchy::traversal(HitInfo& hitInfo, Ray& ray, const Featur
 
         if (intersectsLeft && intersectsRight) { // If both left and right node intersect, check which is closest. If needed, swap the two
             if (leftT < rightT) {
-                traversal(hitInfo, ray, features, leftNode, hit, absoluteT, finalMesh, finalTriangle);
-                traversal(hitInfo, ray, features, rightNode, hit, absoluteT, finalMesh, finalTriangle);
+                traversal(hitInfo, ray, features, leftNode, hit, absoluteT, finalMesh, finalTriangle, sphereInt);
+                traversal(hitInfo, ray, features, rightNode, hit, absoluteT, finalMesh, finalTriangle, sphereInt);
                 return hit;
             } else {
-                traversal(hitInfo, ray, features, rightNode, hit, absoluteT, finalMesh, finalTriangle);
-                traversal(hitInfo, ray, features, leftNode, hit, absoluteT, finalMesh, finalTriangle);
+                traversal(hitInfo, ray, features, rightNode, hit, absoluteT, finalMesh, finalTriangle, sphereInt);
+                traversal(hitInfo, ray, features, leftNode, hit, absoluteT, finalMesh, finalTriangle, sphereInt);
                 return hit;
             }
         } else {
             if (!intersectsLeft && intersectsRight) {
-                traversal(hitInfo, ray, features, rightNode, hit, absoluteT, finalMesh, finalTriangle);
+                traversal(hitInfo, ray, features, rightNode, hit, absoluteT, finalMesh, finalTriangle, sphereInt);
                 return hit;
             } else if (intersectsLeft && !intersectsRight) {
-                traversal(hitInfo, ray, features, leftNode, hit, absoluteT, finalMesh, finalTriangle);
+                traversal(hitInfo, ray, features, leftNode, hit, absoluteT, finalMesh, finalTriangle, sphereInt);
                 return hit;
             }
         }
@@ -526,8 +536,9 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
         int finalMesh;
         int finalTriangle;
         bool hit = false;
-        traversal(hitInfo, ray, features, root, hit, absoluteT,finalMesh, finalTriangle);
-        if (hit) {
+        bool sphereInt = false;
+        traversal(hitInfo, ray, features, root, hit, absoluteT, finalMesh, finalTriangle, sphereInt);
+        if (hit && !sphereInt) {
             Mesh& mesh = m_pScene->meshes[finalMesh];
             glm::uvec3 t = mesh.triangles[finalTriangle];
             drawTriangle(mesh.vertices[t.x], mesh.vertices[t.y], mesh.vertices[t.z]);
