@@ -29,7 +29,7 @@ std::vector<Ray> getEyeFrame(Ray& ray)
     std::vector<Ray> rays;
     rays.push_back(ray);
     // 0,0 on distribution space is 0.5, 0.5 on square's space -> offset by center
-    float side = extr_dof_aperture;
+    float side = extr_dof_aperture / 100.0f;
     float offset = -side / 2.0f;
     glm::vec3 focusPoint = ray.origin + w * extr_dof_f;
     for (int i = 0; i < extr_dof_samples; i++) {
