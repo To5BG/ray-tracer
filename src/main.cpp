@@ -201,6 +201,8 @@ int main(int argc, char** argv)
                     ImGui::Checkbox("Enable offset DOF", &enableDOF);
                     if (enableDOF)
                         ImGui::SliderFloat("Value of offset DOF", &extr_dof, 0.0f, extr_dof_f / 2.0f);
+                    else
+                        extr_dof = 0.0f;
                     if (dof_hasChanged && optDebugRay.has_value()) {
                         dof_hasChanged = false;
                         dofRays = getEyeFrame(*optDebugRay, camera);
