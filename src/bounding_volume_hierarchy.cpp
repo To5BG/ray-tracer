@@ -114,7 +114,7 @@ void BoundingVolumeHierarchy::ConstructorHelper(std::vector<Prim>& prims, std::v
     current.box = calculateAABB(prims, prim_ids);
 
     // Handle leaf node
-    if (currLevel == this->max_level || prim_ids.size() == 1) {
+    if (currLevel == this->max_level || prim_ids.size() <= 1) {
         current.isLeafNode = true;
         std::for_each(prim_ids.begin(), prim_ids.end(), [&](int i) {
             current.ids.push_back(prims[i].t_id);
@@ -148,7 +148,7 @@ void BoundingVolumeHierarchy::ConstructorHelper(std::vector<Prim>& prims, std::v
                 // if more or bins than primitives or equal > check every centroid split
                 if (extr_sah_bins >= prim_ids.size()) {
                     // Find best split by the aforementioned SAH criteria
-                    for (int i = 1; i < prim_ids.size(); i++) {
+                    for (int i = 0; i <= prim_ids.size(); i++) {
                         AxisAlignedBox left = calculateAABB(prims, prim_ids, 0, i);
                         AxisAlignedBox right = calculateAABB(prims, prim_ids, i);
                         float currCost = (surfaceArea(left) * i + surfaceArea(right) * (prim_ids.size() - i)) * cur_surfaceAreaRec;

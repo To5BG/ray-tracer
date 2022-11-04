@@ -5,7 +5,9 @@
 #include "bloom.h"
 #include "screen.h"
 #include "multipleRays.h"
-
+#include "gloss.h"
+#include "dof.h"
+#include "bounding_volume_hierarchy.h"
 
 // Suppress warnings in third-party code.
 #include <framework/disable_all_warnings.h>
@@ -32,8 +34,6 @@ DISABLE_WARNINGS_POP()
 #include <string>
 #include <thread>
 #include <variant>
-#include <bounding_volume_hierarchy.h>
-#include <gloss.h>
 
 // This is the main application. The code in here does not need to be modified.
 enum class ViewMode {
@@ -78,7 +78,11 @@ int main(int argc, char** argv)
         int bvhDebugLeaf = 0;
         int bvhDebugMaxLevel = extr_max_level;
         int bvhSahBinCount = extr_sah_bins;
+        bool dof_hasChanged = false;
 
+        glm::vec3 cachedDOFx = {};
+        glm::vec3 cachedDOFy = {};
+        bool enableDOF = false;
         bool debugSAH = extr_debugSAH;
         bool debugBVHLevel { false };
         bool debugBVHLeaf { false };
@@ -100,7 +104,12 @@ int main(int argc, char** argv)
                     // if multiple rays per pixel, draw all of them and call the function
                     if (config.features.extra.enableMultipleRaysPerPixel) 
                         (void)calculateColor(scene, camera, bvh, screen, config.features, window.getCursorPos().x, window.getCursorPos().y, window.getWindowSize(), 1);
-
+                    if (config.features.extra.enableDepthOfField) {
+                        // generate rays and average final color
+                        cachedDOFx = camera.left();
+                        cachedDOFy = camera.up();
+                        dofRays = getEyeFrame(optDebugRay.value(), camera);
+                    }
                 } break;
                 case GLFW_KEY_A: {
                     debugBVHLeafId++;
@@ -178,11 +187,27 @@ int main(int argc, char** argv)
                 ImGui::Checkbox("Glossy reflections", &config.features.extra.enableGlossyReflection);
                 if (config.features.extra.enableGlossyReflection) 
                 { 
-                    ImGui::SliderInt("Glossy reflection filter size", &extr_glossy_filterSize, 1, 1000);
+                    ImGui::SliderInt("Glossy reflection filter size", &extr_glossy_filterSize, 1, 2048);
                     ImGui::SliderFloat("Glossy reflection sigma", &extr_glossy_sigma, 0.0f, 5.0f);
                 }
                 ImGui::Checkbox("Transparency", &config.features.extra.enableTransparency);
                 ImGui::Checkbox("Depth of field", &config.features.extra.enableDepthOfField);
+                if (config.features.extra.enableDepthOfField) 
+                {
+                    dof_hasChanged |= ImGui::SliderInt("Depth of field: Number of samples", &extr_dof_samples, 1, 512);
+                    dof_hasChanged |= ImGui::SliderFloat("Depth of field: Aperture of camera", &extr_dof_aperture, 1.0f, 5.0f);
+                    dof_hasChanged |= ImGui::SliderFloat("Depth of field: Focal length of camera", &extr_dof_f, 0.0f, 15.0f);
+                    dof_hasChanged |= ImGui::Checkbox("Draw random rays", &draw_random_rays);
+                    ImGui::Checkbox("Enable offset DOF", &enableDOF);
+                    if (enableDOF)
+                        ImGui::SliderFloat("Value of offset DOF", &extr_dof, 0.0f, extr_dof_f / 2.0f);
+                    else
+                        extr_dof = 0.0f;
+                    if (dof_hasChanged && optDebugRay.has_value()) {
+                        dof_hasChanged = false;
+                        dofRays = getEyeFrame(*optDebugRay, camera);
+                    }
+                }
             }
             ImGui::Separator();
 
@@ -388,14 +413,33 @@ int main(int argc, char** argv)
 
                     if (config.features.extra.enableMultipleRaysPerPixel) {
                         // draw each ray if multiple rays per pixel
-                        for (Ray ray : rays) {
+                        for (Ray ray : rays)
                             (void)getFinalColor(scene, bvh, ray, config.features);
-                        }
+                    } else
+                        (void)getFinalColor(scene, bvh, *optDebugRay, config.features);
 
-                    } else {                    
-                    (void)getFinalColor(scene, bvh, *optDebugRay, config.features);
+                    if (config.features.extra.enableDepthOfField) {
+                        for (Ray& r : camFrame) {
+                            drawRay(r, { 0.0f, 1.0f, 0.0f });
+                        }
+                        if (draw_random_rays) {
+                            for (Ray& ray : dofRays) 
+                                getFinalColor(scene, bvh, ray, config.features);
+                        }
                     }
 
+                    if (enableDOF && optDebugRay.has_value()) {
+                        Ray r = optDebugRay.value();
+                        drawRay({ r.origin + r.direction * (extr_dof_f - extr_dof) + (- cachedDOFx - cachedDOFy) / 2.0f, cachedDOFx, 1 }, glm::vec3 { 1.0f });
+                        drawRay({ r.origin + r.direction * (extr_dof_f - extr_dof) + (- cachedDOFx + cachedDOFy) / 2.0f, -cachedDOFy, 1 }, glm::vec3 { 1.0f });
+                        drawRay({ r.origin + r.direction * (extr_dof_f - extr_dof) + (cachedDOFx - cachedDOFy) / 2.0f, cachedDOFy, 1 }, glm::vec3 { 1.0f });
+                        drawRay({ r.origin + r.direction * (extr_dof_f - extr_dof) + (cachedDOFx + cachedDOFy) / 2.0f, -cachedDOFx, 1 }, glm::vec3 { 1.0f });
+
+                        drawRay({ r.origin + r.direction * (extr_dof_f + extr_dof) + (- cachedDOFx - cachedDOFy) / 2.0f, cachedDOFx, 1 }, glm::vec3 { 1.0f });
+                        drawRay({ r.origin + r.direction * (extr_dof_f + extr_dof) + (- cachedDOFx + cachedDOFy) / 2.0f, -cachedDOFy, 1 }, glm::vec3 { 1.0f });
+                        drawRay({ r.origin + r.direction * (extr_dof_f + extr_dof) + (cachedDOFx - cachedDOFy) / 2.0f, cachedDOFy, 1 }, glm::vec3 { 1.0f });
+                        drawRay({ r.origin + r.direction * (extr_dof_f + extr_dof) + (cachedDOFx + cachedDOFy) / 2.0f, -cachedDOFx, 1 }, glm::vec3 { 1.0f });
+                    }
                     enableDebugDraw = false;
                 }
                 glPopAttrib();

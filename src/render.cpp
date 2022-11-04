@@ -6,6 +6,7 @@
 #include "multipleRays.h"
 #include <framework/trackball.h>
 #include "gloss.h"
+#include "dof.h"
 #ifdef NDEBUG
 #include <omp.h>
 #endif
@@ -17,7 +18,7 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
 {
     HitInfo hitInfo;
     float t = ray.t;
-   
+
     if (bvh.intersect(ray, hitInfo, features)) {
 
         glm::vec3 Lo = computeLightContribution(scene, bvh, features, ray, hitInfo);
@@ -82,10 +83,25 @@ void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInte
                     float(x) / float(windowResolution.x) * 2.0f - 1.0f,
                     float(y) / float(windowResolution.y) * 2.0f - 1.0f
                 };
-                const Ray cameraRay = camera.generateRay(normalizedPixelPos);
-                color = getFinalColor(scene, bvh, cameraRay, features,rayDepth);
+                Ray cameraRay = camera.generateRay(normalizedPixelPos);
+                // generate rays and average final color
+                if (features.extra.enableDepthOfField) {
+                    Ray copy = { cameraRay.origin, cameraRay.direction, cameraRay.t };
+                    HitInfo h = {};
+                    bvh.intersect(copy, h, features);
+                    color = getFinalColor(scene, bvh, cameraRay, features);
+                    if (copy.t != std::numeric_limits<float>::max() && fabs(extr_dof_f - glm::length(copy.direction) * copy.t) > extr_dof)
+                    {
+                        std::vector<Ray> rays = getEyeFrame(cameraRay, camera);
+                        // rays.push_back(cameraRay);
+                        for (Ray r : rays) {
+                            color += getFinalColor(scene, bvh, r, features);
+                        }
+                        color /= float(rays.size() + 1);
+                    }
+                } else
+                    color = getFinalColor(scene, bvh, cameraRay, features);
             }
-
             screen.setPixel(x, y, color);
         }
     }
