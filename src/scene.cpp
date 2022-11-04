@@ -105,6 +105,15 @@ Scene loadScenePrebuilt(SceneType type, const std::filesystem::path& dataDir)
         scene.lights.emplace_back(PointLight { glm::vec3(0, 0.58f, 0), glm::vec3(1) }); // Light at the top of the box
     } break;
     };
+    std::filesystem::path base = DATA_DIR;
+    scene.skybox = {
+        Image(base / "right.jpg"),
+        Image(base / "left.jpg"),
+        Image(base / "top.jpg"),
+        Image(base / "bottom.jpg"),
+        Image(base / "front.jpg"),
+        Image(base / "back.jpg")
+    };
 
     return scene;
 }

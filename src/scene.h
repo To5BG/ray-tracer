@@ -33,6 +33,7 @@ struct Scene {
     std::vector<Mesh> meshes;
     std::vector<Sphere> spheres;
     std::vector<std::variant<PointLight, SegmentLight, ParallelogramLight>> lights;
+    std::vector<Image> skybox;
 };
 
 // Load a prebuilt scene.

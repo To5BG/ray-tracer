@@ -1,4 +1,5 @@
 #include "render.h"
+#include "environment_mapping.h"
 #include "intersect.h"
 #include "light.h"
 #include "screen.h"
@@ -22,6 +23,15 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
     if (bvh.intersect(ray, hitInfo, features)) {
 
         glm::vec3 Lo = computeLightContribution(scene, bvh, features, ray, hitInfo);
+        
+        if (features.extra.enableEnvironmentMapping && extr_enabledReflMap) {
+            Ray reflection = computeReflectionRay(ray, hitInfo);
+            drawRay(reflection, glm::vec3 { 1.0f });
+            glm::vec3 texs = environment_lookup(glm::normalize(ray.direction));
+            glm::vec3 res = acquireTexelClamp(scene.skybox[texs[2]], { texs[0], texs[1] }, features);
+            drawRay(ray, res);
+            return res;
+        }
 
         if (features.extra.enableTransparency) {
             drawRay(ray, Lo);
@@ -56,6 +66,13 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
         // Set the color of the pixel to white if the ray hits.
         return Lo;
     } 
+    
+    if (features.extra.enableEnvironmentMapping && extr_enabledSkyBox) {
+        glm::vec3 texs = environment_lookup(glm::normalize(ray.direction));
+        glm::vec3 res = acquireTexelClamp(scene.skybox[texs[2]], { texs[0], texs[1] }, features);
+        drawRay(ray, res);
+        return res;
+    }
     // Draw a red debug ray if the ray missed.
     drawRay(ray, glm::vec3(1.0f, 0.0f, 0.0f));
     // Set the color of the pixel to black if the ray misses.
