@@ -1,0 +1,2 @@
+# Exclude assignment HTML from language stats
+assignment.html linguist-documentation
